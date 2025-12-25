@@ -1,5 +1,29 @@
-import mingo from 'mingo';
+
+import { Query, Aggregator } from 'mingo';
+import { Context } from 'mingo/core';
+import * as queryOperators from 'mingo/operators/query';
+import * as projectionOperators from 'mingo/operators/projection';
+import * as expressionOperators from 'mingo/operators/expression';
+import * as pipelineOperators from 'mingo/operators/pipeline';
+
 import { DatabaseEngine, QueryResult, TableDefinition } from './types';
+
+// Debug check
+console.log("Mingo Query Ops Keys:", Object.keys(queryOperators || {}));
+
+// Initialize Context (Modern way)
+let context: Context;
+try {
+    context = Context.init({
+        query: queryOperators,
+        projection: projectionOperators,
+        expression: expressionOperators,
+        pipeline: pipelineOperators
+    });
+    console.log("Mingo: Context initialized");
+} catch (e) {
+    console.warn("Mingo: Context init failed", e);
+}
 
 // Simple types for the in-memory store
 type Document = Record<string, any>;
@@ -52,12 +76,12 @@ export class NoSQLEngine implements DatabaseEngine {
                 return {
                     find: (query: any = {}) => {
                         if (!this.store[colName]) return [];
-                        // Return the cursor directly to allow chaining (sort, limit, map, etc.)
-                        return new mingo.Query(query).find(this.store[colName]);
+                        // Pass context explicitly
+                        return new Query(query, { context }).find(this.store[colName]);
                     },
                     findOne: (query: any = {}) => {
                         if (!this.store[colName]) return null;
-                        const cursor = new mingo.Query(query).find(this.store[colName]);
+                        const cursor = new Query(query, { context }).find(this.store[colName]);
                         return cursor.next() || null;
                     },
                     insert: (doc: Document) => {
@@ -72,12 +96,12 @@ export class NoSQLEngine implements DatabaseEngine {
                     },
                     count: (query: any = {}) => {
                         if (!this.store[colName]) return 0;
-                        const cursor = new mingo.Query(query).find(this.store[colName]);
+                        const cursor = new Query(query, { context }).find(this.store[colName]);
                         return cursor.all().length;
                     },
                     remove: (query: any = {}) => {
                         if (!this.store[colName]) return 0;
-                        const queryObj = new mingo.Query(query);
+                        const queryObj = new Query(query, { context });
                         const initialLen = this.store[colName].length;
                         this.store[colName] = this.store[colName].filter(doc => !queryObj.test(doc));
                         const deletedCount = initialLen - this.store[colName].length;
@@ -86,11 +110,12 @@ export class NoSQLEngine implements DatabaseEngine {
                     },
                     aggregate: (pipeline: any[] = []) => {
                         if (!this.store[colName]) return [];
-                        // Note: Assuming mingo.Aggregator is available on the default export or global
-                        // If mingo 7 splits this, it might fail. But for now we try standard approach.
-                        // Fallback check if Aggregate exists in mingo
-                        if ((mingo as any).Aggregator) {
-                            return new (mingo as any).Aggregator(pipeline).run(this.store[colName]);
+                        try {
+                            if (Aggregator) {
+                                return new Aggregator(pipeline, { context }).run(this.store[colName]);
+                            }
+                        } catch (e) {
+                            console.warn("Aggregator run failed", e);
                         }
                         throw new Error("Aggregation not supported in this environment");
                     }
@@ -99,10 +124,13 @@ export class NoSQLEngine implements DatabaseEngine {
         });
 
         try {
+            console.log("NoSQL Executing:", script);
             // Safe-ish execution using Function constructor with restricted scope
             const func = new Function('db', `return ${script}`);
             result = func(dbProxy);
+            console.log("NoSQL Result Raw:", result);
         } catch (e: any) {
+            console.error("NoSQL Error:", e);
             throw new Error("Syntax Error: " + e.message);
         }
 
@@ -147,9 +175,7 @@ export class NoSQLEngine implements DatabaseEngine {
     }
 
     async getSchema(): Promise<TableDefinition[]> {
-        // Returns collections as tables
         return Object.keys(this.store).map(colName => {
-            // Infer schema from first document if exists
             const firstDoc = this.store[colName][0];
             const columns = firstDoc
                 ? Object.keys(firstDoc).map(k => ({ name: k, type: typeof firstDoc[k] }))

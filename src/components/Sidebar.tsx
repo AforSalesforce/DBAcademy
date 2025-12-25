@@ -1,6 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
+import { ChevronRight, ChevronDown, Plus, BookOpen, CheckCircle, Circle, Folder } from 'lucide-react';
+import { clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 
 export interface Lesson {
     id: string;
@@ -17,18 +20,34 @@ export interface Module {
 
 interface SidebarProps {
     modules: Module[];
+    activeLessonId?: string;
     onAddModule: (title: string) => void;
     onAddLesson: (moduleId: string, title: string) => void;
-    onSelectLesson: (lesson: Lesson) => void;
+    onSelectLesson: (lesson: Lesson, moduleId: string) => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ modules, onAddModule, onAddLesson, onSelectLesson }) => {
+export function cn(...inputs: (string | undefined | null | false)[]) {
+    return twMerge(clsx(inputs));
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ modules, activeLessonId, onAddModule, onAddLesson, onSelectLesson }) => {
     const [isAddingModule, setIsAddingModule] = useState(false);
     const [newModuleTitle, setNewModuleTitle] = useState('');
+    const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set(modules.map(m => m.id)));
 
     // We track which module acts as the active input for a new lesson
     const [addingLessonToModuleId, setAddingLessonToModuleId] = useState<string | null>(null);
     const [newLessonTitle, setNewLessonTitle] = useState('');
+
+    const toggleModule = (id: string) => {
+        const newSet = new Set(expandedModules);
+        if (newSet.has(id)) {
+            newSet.delete(id);
+        } else {
+            newSet.add(id);
+        }
+        setExpandedModules(newSet);
+    };
 
     const handleSubmitModule = (e: React.FormEvent) => {
         e.preventDefault();
@@ -49,133 +68,108 @@ const Sidebar: React.FC<SidebarProps> = ({ modules, onAddModule, onAddLesson, on
     }
 
     return (
-        <div className="sidebar" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-            <div style={{ padding: '1rem', flex: 1, overflowY: 'auto' }}>
+        <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 {modules.map(module => (
-                    <div key={module.id} style={{ marginBottom: '1.5rem' }}>
-                        <div style={{
-                            marginBottom: '0.5rem',
-                            color: 'var(--text-secondary)',
-                            textTransform: 'uppercase',
-                            fontSize: '0.75rem',
-                            fontWeight: 'bold',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center'
-                        }}>
-                            <span>{module.title}</span>
+                    <div key={module.id} className="group">
+                        <div
+                            className="flex items-center justify-between mb-2 px-2 py-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors"
+                            onClick={() => toggleModule(module.id)}
+                        >
+                            <div className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
+                                {expandedModules.has(module.id) ? (
+                                    <ChevronDown size={16} />
+                                ) : (
+                                    <ChevronRight size={16} />
+                                )}
+                                <span className="uppercase tracking-wider text-xs">{module.title}</span>
+                            </div>
                             <button
-                                onClick={() => setAddingLessonToModuleId(module.id)}
-                                title="Add Lesson"
-                                style={{
-                                    background: 'transparent',
-                                    border: 'none',
-                                    color: 'var(--text-secondary)',
-                                    cursor: 'pointer',
-                                    fontSize: '1rem',
-                                    padding: '0 4px'
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setAddingLessonToModuleId(module.id);
+                                    if (!expandedModules.has(module.id)) toggleModule(module.id);
                                 }}
+                                className="opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-all"
+                                title="Add Lesson"
                             >
-                                +
+                                <Plus size={14} />
                             </button>
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                            {module.lessons.map(lesson => (
-                                <div
-                                    key={lesson.id}
-                                    onClick={() => onSelectLesson(lesson)}
-                                    style={{
-                                        padding: '0.5rem',
-                                        borderRadius: '0.375rem',
-                                        backgroundColor: 'var(--bg-tertiary)',
-                                        color: 'var(--text-primary)',
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '0.5rem',
-                                        fontWeight: 500,
-                                        border: '1px solid transparent',
-                                        transition: 'all 0.2s'
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        e.currentTarget.style.borderColor = 'var(--accent)';
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.currentTarget.style.borderColor = 'transparent';
-                                    }}
-                                >
-                                    <span style={{ color: lesson.completed ? 'var(--success)' : 'var(--accent)' }}>
-                                        {lesson.completed ? '✓' : '●'}
-                                    </span>
-                                    {lesson.title}
-                                </div>
-                            ))}
 
-                            {/* Inline Add Lesson Input */}
-                            {addingLessonToModuleId === module.id ? (
-                                <form onSubmit={(e) => handleSubmitLesson(e, module.id)} style={{ padding: '0.5rem 0' }}>
-                                    <input
-                                        autoFocus
-                                        type="text"
-                                        placeholder="Lesson Title..."
-                                        value={newLessonTitle}
-                                        onChange={e => setNewLessonTitle(e.target.value)}
-                                        onBlur={() => {
-                                            // Optional: cancel on blur if empty, or keep open. 
-                                            // Let's keep it simple: cancel if empty and blurring
-                                            if (!newLessonTitle.trim()) setAddingLessonToModuleId(null);
-                                        }}
-                                        style={{
-                                            width: '100%',
-                                            padding: '0.5rem',
-                                            borderRadius: '0.25rem',
-                                            border: '1px solid var(--accent)',
-                                            background: 'var(--bg-tertiary)',
-                                            color: 'var(--text-primary)',
-                                            fontSize: '0.875rem'
-                                        }}
-                                    />
-                                </form>
-                            ) : null}
+                        {expandedModules.has(module.id) && (
+                            <div className="space-y-1 ml-2 pl-2 border-l border-slate-200 dark:border-slate-800">
+                                {module.lessons.map(lesson => {
+                                    const isActive = activeLessonId === lesson.id;
+                                    return (
+                                        <div
+                                            key={lesson.id}
+                                            onClick={() => onSelectLesson(lesson, module.id)}
+                                            className={cn(
+                                                "flex items-center gap-3 px-3 py-2 text-sm rounded-md cursor-pointer transition-all",
+                                                isActive
+                                                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 font-medium"
+                                                    : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                                            )}
+                                        >
+                                            {lesson.completed ? (
+                                                <CheckCircle size={16} className="text-green-500" />
+                                            ) : (
+                                                <Circle size={16} className={cn("text-slate-400", isActive && "text-blue-500")} />
+                                            )}
+                                            <span className="truncate">{lesson.title}</span>
+                                        </div>
+                                    );
+                                })}
 
-                            {module.lessons.length === 0 && !addingLessonToModuleId && (
-                                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontStyle: 'italic', paddingLeft: '0.5rem' }}>
-                                    No lessons yet
-                                </div>
-                            )}
-                        </div>
+                                {/* Inline Add Lesson Input */}
+                                {addingLessonToModuleId === module.id ? (
+                                    <form onSubmit={(e) => handleSubmitLesson(e, module.id)} className="px-2 py-1">
+                                        <input
+                                            autoFocus
+                                            type="text"
+                                            placeholder="Lesson Title..."
+                                            value={newLessonTitle}
+                                            onChange={e => setNewLessonTitle(e.target.value)}
+                                            onBlur={() => {
+                                                if (!newLessonTitle.trim()) setAddingLessonToModuleId(null);
+                                            }}
+                                            className="w-full px-2 py-1 text-sm bg-white dark:bg-slate-900 border border-blue-400 rounded focus:outline-none"
+                                        />
+                                    </form>
+                                ) : null}
+
+                                {module.lessons.length === 0 && !addingLessonToModuleId && (
+                                    <div className="px-3 py-2 text-xs text-slate-400 italic">
+                                        No lessons yet
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 ))}
 
                 {modules.length === 0 && (
-                    <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                        No curriculum found for this engine. <br /> Click below to start!
+                    <div className="text-center py-8 text-slate-500 text-sm">
+                        <Folder className="mx-auto mb-2 opacity-50" size={32} />
+                        No curriculum found for this engine.
                     </div>
                 )}
 
-                {/* Inline Add Module Input (appended to list) */}
+                {/* Inline Add Module */}
                 {isAddingModule && (
-                    <div style={{ marginBottom: '1.5rem' }}>
+                    <div className="mb-4 animate-in fade-in slide-in-from-top-2">
                         <form onSubmit={handleSubmitModule}>
                             <input
                                 autoFocus
                                 type="text"
-                                placeholder="Module Title... (e.g. Advanced SQL)"
+                                placeholder="Module Title..."
                                 value={newModuleTitle}
                                 onChange={e => setNewModuleTitle(e.target.value)}
                                 onBlur={() => {
                                     if (!newModuleTitle.trim()) setIsAddingModule(false);
                                 }}
-                                style={{
-                                    width: '100%',
-                                    padding: '0.5rem',
-                                    borderRadius: '0.25rem',
-                                    border: '1px solid var(--accent)',
-                                    background: 'var(--bg-secondary)',
-                                    color: 'var(--text-primary)',
-                                    fontSize: '0.875rem',
-                                    fontWeight: 'bold'
-                                }}
+                                className="w-full p-2 text-sm bg-white dark:bg-slate-900 border border-blue-500 rounded font-semibold focus:outline-none shadow-sm"
                             />
                         </form>
                     </div>
@@ -184,26 +178,17 @@ const Sidebar: React.FC<SidebarProps> = ({ modules, onAddModule, onAddLesson, on
             </div>
 
             {!isAddingModule && (
-                <div style={{ padding: '1rem', borderTop: '1px solid var(--border)' }}>
+                <div className="p-4 border-t border-slate-200 dark:border-slate-800">
                     <button
                         onClick={() => setIsAddingModule(true)}
-                        style={{
-                            width: '100%',
-                            padding: '0.75rem',
-                            background: 'var(--bg-secondary)',
-                            border: '1px dashed var(--border)',
-                            color: 'var(--text-secondary)',
-                            borderRadius: '0.5rem',
-                            cursor: 'pointer',
-                            fontSize: '0.9rem',
-                            fontWeight: 500
-                        }}
+                        className="w-full flex items-center justify-center gap-2 p-2 text-sm font-medium text-slate-600 dark:text-slate-400 border border-dashed border-slate-300 dark:border-slate-700 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                     >
-                        + Add Curriculum Module
+                        <Plus size={16} /> Add Module
                     </button>
                 </div>
             )}
         </div>
     )
 }
+
 export default Sidebar;
