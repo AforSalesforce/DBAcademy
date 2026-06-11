@@ -1,7 +1,8 @@
 {
-  "name": "temp-app",
-  "version": "0.1.0",
+  "name": "dbacademy",
+  "version": "1.0.0",
   "private": true,
+  "description": "Interactive browser-based database learning platform for students, schools, and enterprises",
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build --webpack",
@@ -9,25 +10,34 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@auth/core": "^0.41.2",
     "@electric-sql/pglite": "^0.3.14",
     "@faker-js/faker": "^10.1.0",
     "@monaco-editor/react": "^4.7.0",
+    "@supabase/ssr": "^0.12.0",
+    "@supabase/supabase-js": "^2.108.1",
     "@types/sql.js": "^1.4.9",
+    "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
+    "framer-motion": "^12.40.0",
     "lucide-react": "^0.562.0",
     "mermaid": "^11.12.2",
     "mingo": "^7.1.0",
     "next": "16.1.0",
+    "next-auth": "^5.0.0-beta.31",
     "next-themes": "^0.4.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
     "sql.js": "^1.13.0",
-    "tailwind-merge": "^3.4.0"
+    "stripe": "^22.2.0",
+    "tailwind-merge": "^3.4.0",
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.19",
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

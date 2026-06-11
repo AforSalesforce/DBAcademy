@@ -174,6 +174,14 @@ export class NoSQLEngine implements DatabaseEngine {
         }
     }
 
+    async serialize(): Promise<Uint8Array> {
+        return new TextEncoder().encode(JSON.stringify(this.store));
+    }
+
+    async restore(data: Uint8Array): Promise<void> {
+        this.store = JSON.parse(new TextDecoder().decode(data));
+    }
+
     async getSchema(): Promise<TableDefinition[]> {
         return Object.keys(this.store).map(colName => {
             const firstDoc = this.store[colName][0];

@@ -1,0 +1,212 @@
+'use client';
+
+import { create } from 'zustand';
+import { localGetAll, localPut, localDelete } from './local-db';
+import { createClient, isSupabaseConfigured } from './supabase/client';
+
+export interface Project {
+  id: string;
+  name: string;
+  description?: string;
+  engine: 'postgres' | 'sqlite' | 'nosql';
+  /** True for the auto-created playground projects that mirror the old engine dropdown. */
+  isDefault: boolean;
+  snapshotPath?: string;
+  snapshotAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Stable IDs for the three default playground projects.
+export const DEFAULT_PROJECT_IDS: Record<'postgres' | 'sqlite' | 'nosql', string> = {
+  sqlite: 'default-sqlite',
+  postgres: 'default-postgres',
+  nosql: 'default-nosql',
+};
+
+const DEFAULT_PROJECTS: Project[] = [
+  {
+    id: DEFAULT_PROJECT_IDS.sqlite,
+    name: 'SQLite Playground',
+    engine: 'sqlite',
+    isDefault: true,
+    createdAt: new Date(0).toISOString(),
+    updatedAt: new Date(0).toISOString(),
+  },
+  {
+    id: DEFAULT_PROJECT_IDS.postgres,
+    name: 'PostgreSQL Playground',
+    engine: 'postgres',
+    isDefault: true,
+    createdAt: new Date(0).toISOString(),
+    updatedAt: new Date(0).toISOString(),
+  },
+  {
+    id: DEFAULT_PROJECT_IDS.nosql,
+    name: 'NoSQL Playground',
+    engine: 'nosql',
+    isDefault: true,
+    createdAt: new Date(0).toISOString(),
+    updatedAt: new Date(0).toISOString(),
+  },
+];
+
+interface ProjectStore {
+  projects: Project[];
+  activeProjectId: string;
+  hydrated: boolean;
+
+  hydrate(): Promise<void>;
+  createProject(
+    name: string,
+    engine: 'postgres' | 'sqlite' | 'nosql',
+    description?: string
+  ): Promise<Project>;
+  updateProject(id: string, updates: Partial<Pick<Project, 'name' | 'description'>>): Promise<void>;
+  deleteProject(id: string): Promise<void>;
+  setActiveProject(id: string): void;
+  getActiveProject(): Project | undefined;
+}
+
+export const useProjectStore = create<ProjectStore>((set, get) => ({
+  projects: DEFAULT_PROJECTS,
+  activeProjectId: DEFAULT_PROJECT_IDS.sqlite,
+  hydrated: false,
+
+  async hydrate() {
+    if (get().hydrated) return;
+    try {
+      const saved = await localGetAll<Project>('projects');
+      // Merge: defaults are always present, then append user projects.
+      const userProjects = saved.filter(p => !DEFAULT_PROJECT_IDS[p.engine as keyof typeof DEFAULT_PROJECT_IDS] || !p.isDefault);
+      set({ projects: [...DEFAULT_PROJECTS, ...userProjects], hydrated: true });
+
+      // Background Supabase sync.
+      if (isSupabaseConfigured) {
+        try {
+          const supabase = createClient();
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const { data } = await supabase
+              .from('projects')
+              .select('*')
+              .eq('owner_id', user.id);
+            if (data && data.length > 0) {
+              const remote = data.map((r: any) => ({
+                id: r.id,
+                name: r.name,
+                description: r.description,
+                engine: r.engine,
+                isDefault: false,
+                snapshotPath: r.snapshot_path,
+                snapshotAt: r.snapshot_at,
+                createdAt: r.created_at,
+                updatedAt: r.updated_at,
+              })) as Project[];
+              // Last-write-wins: merge by updatedAt
+              const merged = mergeById([...DEFAULT_PROJECTS, ...userProjects], remote);
+              set({ projects: merged });
+              // Persist merged set locally
+              for (const p of merged.filter(p => !p.isDefault)) {
+                await localPut('projects', p);
+              }
+            }
+          }
+        } catch {
+          // Supabase sync is best-effort; local copy is authoritative.
+        }
+      }
+    } catch (e) {
+      console.error('project-store hydrate error', e);
+      set({ hydrated: true });
+    }
+  },
+
+  async createProject(name, engine, description) {
+    const now = new Date().toISOString();
+    const project: Project = {
+      id: crypto.randomUUID(),
+      name,
+      description,
+      engine,
+      isDefault: false,
+      createdAt: now,
+      updatedAt: now,
+    };
+    await localPut('projects', project);
+    set(s => ({ projects: [...s.projects, project] }));
+
+    if (isSupabaseConfigured) {
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase.from('projects').insert({
+            id: project.id,
+            owner_id: user.id,
+            name,
+            description,
+            engine,
+            created_at: now,
+            updated_at: now,
+          });
+        }
+      } catch { /* best-effort */ }
+    }
+
+    return project;
+  },
+
+  async updateProject(id, updates) {
+    const now = new Date().toISOString();
+    set(s => ({
+      projects: s.projects.map(p =>
+        p.id === id ? { ...p, ...updates, updatedAt: now } : p
+      ),
+    }));
+    const updated = get().projects.find(p => p.id === id);
+    if (updated && !updated.isDefault) {
+      await localPut('projects', updated);
+    }
+  },
+
+  async deleteProject(id) {
+    const project = get().projects.find(p => p.id === id);
+    if (!project || project.isDefault) return;
+
+    set(s => ({ projects: s.projects.filter(p => p.id !== id) }));
+    await localDelete('projects', id);
+
+    // Switch active project to matching playground if we just deleted the active one.
+    if (get().activeProjectId === id) {
+      get().setActiveProject(DEFAULT_PROJECT_IDS[project.engine]);
+    }
+
+    if (isSupabaseConfigured) {
+      try {
+        const supabase = createClient();
+        await supabase.from('projects').delete().eq('id', id);
+      } catch { /* best-effort */ }
+    }
+  },
+
+  setActiveProject(id) {
+    set({ activeProjectId: id });
+  },
+
+  getActiveProject() {
+    return get().projects.find(p => p.id === get().activeProjectId);
+  },
+}));
+
+// ── helpers ──────────────────────────────────────────────────────────────────
+
+function mergeById(local: Project[], remote: Project[]): Project[] {
+  const map = new Map<string, Project>();
+  for (const p of local) map.set(p.id, p);
+  for (const p of remote) {
+    const existing = map.get(p.id);
+    if (!existing || p.updatedAt > existing.updatedAt) map.set(p.id, p);
+  }
+  return Array.from(map.values());
+}

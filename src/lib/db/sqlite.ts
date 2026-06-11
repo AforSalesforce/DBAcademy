@@ -1,14 +1,21 @@
-import initSqlJs, { Database } from 'sql.js';
+import initSqlJs, { Database, SqlJsStatic } from 'sql.js';
 import { DatabaseEngine, TableDefinition, QueryResult, ForeignKeyDefinition } from './types';
+
+const WASM_URL = (file: string) =>
+    `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.13.0/${file}`;
+
+let _SQL: SqlJsStatic | null = null;
+async function getSqlJs(): Promise<SqlJsStatic> {
+    if (!_SQL) _SQL = await initSqlJs({ locateFile: WASM_URL });
+    return _SQL;
+}
 
 export class SQLiteEngine implements DatabaseEngine {
     type = 'sqlite' as const;
     private db: Database | null = null;
 
     async init() {
-        const SQL = await initSqlJs({
-            locateFile: file => `/${file}` // Loads from public/sql-wasm.wasm
-        });
+        const SQL = await getSqlJs();
         this.db = new SQL.Database();
 
         // Seed Data
@@ -88,6 +95,16 @@ export class SQLiteEngine implements DatabaseEngine {
         } catch (e: any) {
             throw new Error(e.message);
         }
+    }
+
+    async serialize(): Promise<Uint8Array> {
+        if (!this.db) throw new Error('DB not initialized');
+        return this.db.export();
+    }
+
+    async restore(data: Uint8Array): Promise<void> {
+        const SQL = await getSqlJs();
+        this.db = new SQL.Database(data);
     }
 
     async getSchema(): Promise<TableDefinition[]> {

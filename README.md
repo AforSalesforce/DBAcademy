@@ -1,80 +1,144 @@
 # DBAcademy
 
-**DBAcademy** is an interactive, browser-based platform designed to help you master database engineering. It supports multiple database engines (PostgreSQL, SQLite, NoSQL) entirely in the browser using WASM technology, allowing for safe, zero-setup experimentation and learning.
+**The interactive database learning platform for students, schools, and enterprises.**
 
-## 🚀 Features Since Inception
+Master PostgreSQL, SQLite, and NoSQL with guided lessons, quizzes, and a professional SQL playground — all running 100% in your browser.
 
-We have built a robust foundation for an interactive learning environment. Here is what has been accomplished so far:
+## Features
 
-### 1. Multi-Engine Interactive Playground
-*   **Three Engines**: Switch seamlessly between **PostgreSQL** (via PGlite), **SQLite** (via WASM), and a custom **NoSQL** in-memory engine.
-*   **SQL/Code Editor**: A full-featured code editor (Monaco-like experience) with syntax highlighting for SQL and JavaScript.
-*   **Result Visualization**: Instantly view query results in a responsive table format.
-*   **Data Seeding**: One-click generation of realistic fake data (using Faker.js) to populate your tables for meaningful queries.
-*   **Smart "View Table"**: Quickly inspect table contents without manually typing `SELECT * ...`.
+- **Multi-Engine Support** — PostgreSQL (PGlite), SQLite (WASM), and NoSQL, all running client-side
+- **30+ Interactive Lessons** — Structured curriculum from basics to advanced topics
+- **Quiz & Assessment System** — Test knowledge with immediate feedback and explanations
+- **Gamified Progress** — XP, levels, streaks, achievements, and completion tracking
+- **Professional SQL Editor** — Monaco editor with syntax highlighting and keyboard shortcuts
+- **Schema Visualization** — ER diagrams and table inspection tools
+- **Institution Admin Panel** — Student tracking, custom curricula, bulk enrollment
+- **Pricing Tiers** — Free, Pro ($12/mo), and Institution ($8/student/mo)
+- **Auth System** — Sign up/sign in with credential-based authentication
+- **Production Security** — Security headers, input validation, OWASP compliance
 
-### 2. Comprehensive Curriculum System
-*   **Structured Learning**: Sidebar navigation organized by Modules and Lessons specific to the selected database engine.
-*   **Interactive Lessons**: Lessons are rendered in rich text/Markdown, often paired with default queries to help you start immediately.
-*   **Custom Lesson Builder**:
-    *   **Create Your Own**: Users can add their own Modules and Lessons to structured their personal learning path.
-    *   **Edit Content**: An editing interface allowing you to write custom lesson content, persisted locally so you don't lose your work.
+## Tech Stack
 
-### 3. Visual Database Tools
-*   **Schema Viewer**: A dedicated tab to list all tables and their column definitions.
-*   **ER Diagram (ERD)**: An auto-generated Entity-Relationship Diagram that visualizes your database structure and relationships in real-time.
+- **Framework**: Next.js 16 (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **State**: Zustand (persisted locally + synced to Supabase for signed-in users)
+- **Auth & Data**: Supabase (Auth, Postgres, RLS)
+- **DB Engines**: PGlite, sql.js (WASM), custom NoSQL
+- **Editor**: Monaco Editor
+- **Icons**: Lucide React
 
-### 4. Modern, Responsive UI
-*   **Sleek Design**: Built with Tailwind CSS and Shadcn/UI principles for a clean, professional aesthetic.
-*   **Dark Mode Support**: core UI components are optimized for both light and dark themes.
-*   **Responsive Layout**: A 3-pane layout (Navigation, Lesson Content, Editor/Results) that adapts to screen size.
+## Getting Started
 
----
+```bash
+# Install dependencies (Supabase + Stripe packages are new — not yet in package.json)
+npm install
+npm install @supabase/supabase-js @supabase/ssr stripe
 
-## 📖 Walkthrough: How to Use DBAcademy
+# Copy environment variables
+cp .env.example .env.local
 
-1.  **Choose Your Engine**:
-    *   Use the dropdown in the top header to select **PostgreSQL**, **SQLite**, or **NoSQL**. The environment will instantly switch, initializing the respective engine in your browser (no server needed!).
+# Run development server
+npm run dev
 
-2.  **Start Learning**:
-    *   Navigate the **Curriculum** tab in the left sidebar.
-    *   Click on a lesson (e.g., "SQL Basics"). The middle panel will show the educational content, and the editor will verify if there is a pre-loaded query.
+# Build for production
+npm run build
+npm start
+```
 
-3.  **Run Queries**:
-    *   Type your SQL (or JS for NoSQL) in the top-right editor.
-    *   Click the **▶ Run** button (or use shortcuts if implemented).
-    *   See the output in the **Results** panel below the editor.
+Open [http://localhost:3000](http://localhost:3000).
 
-4.  **Explore the Database**:
-    *   Click **Tables** in the left sidebar to see the schema.
-    *   Click **Graph** to see the visual ER Diagram.
-    *   Click the **🌱 Seed Data** button in the header to instantly add 10-50 rows of data to your tables, making practice queries more interesting.
+### Supabase setup (required for accounts & sync)
 
-5.  **Create Custom Notes/Lessons**:
-    *   Use the "Add Module" or "Add Lesson" buttons in the sidebar to create a new topic.
-    *   Select your new lesson and use the **Edit** feature to write your own notes or copy-paste resources you want to study.
+1. Create a project at [supabase.com/dashboard](https://supabase.com/dashboard).
+2. In the SQL Editor, run the migrations in order: `supabase/migrations/001_init.sql`, `002_billing.sql`, `003_institutions.sql`.
+3. Fill `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` in `.env.local` (Settings > API).
+4. For local dev, consider disabling "Confirm email" (Authentication > Providers > Email) so signups get a session immediately.
 
----
+The app still runs without Supabase configured — auth and sync are disabled and progress stays in localStorage.
 
-## 🛠 Tech Stack
+### Stripe setup (required for payments)
 
-*   **Framework**: [Next.js 14+](https://nextjs.org/) (App Router)
-*   **Language**: TypeScript
-*   **Styling**: Tailwind CSS, CSS Modules
-*   **Database Engines (Browser-side)**:
-    *   [@electric-sql/pglite](https://github.com/electric-sql/pglite) (PostgreSQL)
-    *   SQLite WASM
-*   **Utilities**: Faker.js (Data generation), Lucide React (Icons)
+1. In the [Stripe dashboard](https://dashboard.stripe.com), create two Products (Pro, Institution), each with a monthly and an annual recurring Price.
+2. Copy the four Price IDs plus your secret key into `.env.local` (see `.env.example`).
+3. Webhook: add an endpoint for `https://yourdomain.com/api/billing/webhook` listening to `customer.subscription.created`, `customer.subscription.updated`, and `customer.subscription.deleted`, and copy its signing secret to `STRIPE_WEBHOOK_SECRET`.
+   For local dev: `stripe listen --forward-to localhost:3000/api/billing/webhook`.
 
-## Getting Started Locally
+The webhook is the single source of truth for `profiles.plan` — users cannot change their own plan (enforced by column-level grants in `002_billing.sql`).
 
-1.  **Clone the repository**
-2.  **Install dependencies**:
-    ```bash
-    npm install
-    ```
-3.  **Run the development server**:
-    ```bash
-    npm run dev
-    ```
-4.  Open [http://localhost:3000](http://localhost:3000) to start via your browser.
+### Institutions (multi-tenant)
+
+- A user on the Institution plan visits `/admin` and creates an organization (`create_institution` RPC) — they become its teacher/owner and get an 8-character invite code.
+- Students enter that code in the "Join your class" card on `/dashboard` (`join_institution` RPC).
+- The owner's `/admin` dashboard shows real member progress (lessons, quiz averages, streaks, XP) via RLS policies that grant owners read access to member profiles and progress.
+
+### Optional: self-host the SQLite WASM binary
+
+The SQLite engine currently loads `sql-wasm.wasm` from cdnjs. To self-host:
+
+```bash
+cp node_modules/sql.js/dist/sql-wasm.wasm public/
+```
+
+then change the `locateFile` URL in `src/lib/db/sqlite.ts` back to `/${file}`.
+
+## SaaS Architecture
+
+- **Auth**: Supabase email/password. `src/middleware.ts` refreshes sessions and protects `/dashboard` and `/admin`.
+- **Profiles**: a `public.profiles` row (name, role, plan) is auto-created on signup by the `handle_new_user` trigger.
+- **Progress sync**: `src/components/ProgressSync.tsx` hydrates the zustand store from `public.user_progress` on load and writes back debounced changes.
+- **Plans / billing**: stubbed in `src/lib/plans.ts`; feature gating reads `profiles.plan` (`free`/`pro`/`institution`). A future Stripe webhook only needs to update that column. Free plan limits custom modules to 1.
+
+### Cleanup TODO
+
+The old NextAuth implementation is now unused and can be removed:
+
+```bash
+rm -rf src/app/api/auth src/lib/auth.ts
+npm uninstall next-auth @auth/core bcryptjs @types/bcryptjs
+```
+
+## Project Structure
+
+```
+src/
+├── app/
+│   ├── page.tsx              # Landing page (marketing)
+│   ├── learn/page.tsx        # SQL playground & lessons
+│   ├── dashboard/page.tsx    # User progress dashboard
+│   ├── pricing/page.tsx      # Pricing plans
+│   ├── admin/page.tsx        # Institution admin panel
+│   ├── auth/                 # Sign in / Sign up
+│   └── api/auth/             # NextAuth API routes
+├── components/
+│   ├── Quiz.tsx              # Quiz/assessment engine
+│   ├── SqlEditor.tsx         # Monaco code editor
+│   ├── LessonView.tsx        # Lesson renderer with quizzes
+│   ├── Sidebar.tsx           # Curriculum navigation
+│   ├── ResultsTable.tsx      # Query results display
+│   ├── SchemaViewer.tsx      # Database schema inspector
+│   ├── ERDiagram.tsx         # Entity-relationship diagrams
+│   └── ErrorBoundary.tsx     # Production error handling
+└── lib/
+    ├── curriculum.ts         # All lesson/quiz content
+    ├── progress-store.ts     # Zustand progress & achievements
+    ├── auth.ts               # NextAuth configuration
+    └── db/                   # Database engine implementations
+```
+
+## Deployment
+
+Deploy to Vercel, Netlify, or any Node.js hosting:
+
+```bash
+npm run build
+npm start
+```
+
+Set the following environment variables in production:
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+
+## License
+
+Proprietary. All rights reserved.

@@ -1,23 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { BookOpen, AlertCircle, X, StickyNote } from 'lucide-react';
+import { BookOpen, AlertCircle, X, StickyNote, CheckCircle } from 'lucide-react';
+import { Quiz, QuizQuestion } from './Quiz';
+import { useProgressStore } from '@/lib/progress-store';
 
 interface LessonViewProps {
     id: string;
     title: string;
     content: string;
     defaultQuery?: string;
+    quiz?: QuizQuestion[];
+    moduleId?: string;
     onRunSample?: (query: string) => void;
     onClose: () => void;
     onEdit?: (newContent: string) => void;
 }
 
-export const LessonView: React.FC<LessonViewProps> = ({ id, title, content, defaultQuery, onRunSample, onClose, onEdit }) => {
+export const LessonView: React.FC<LessonViewProps> = ({ id, title, content, defaultQuery, quiz, moduleId, onRunSample, onClose, onEdit }) => {
     const [note, setNote] = useState('');
     const [isClient, setIsClient] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editedContent, setEditedContent] = useState(content);
+    const [showQuiz, setShowQuiz] = useState(false);
+    const [quizCompleted, setQuizCompleted] = useState(false);
+    const { markLessonComplete, recordQuizScore } = useProgressStore();
 
     useEffect(() => {
         setIsClient(true);
@@ -125,6 +132,62 @@ export const LessonView: React.FC<LessonViewProps> = ({ id, title, content, defa
                                 </button>
                             )}
                         </div>
+                    </div>
+                )}
+
+                {/* Quiz Section */}
+                {!isEditing && quiz && quiz.length > 0 && (
+                    <div className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
+                        {!showQuiz && !quizCompleted ? (
+                            <div className="p-6 text-center bg-gradient-to-b from-indigo-50 to-white dark:from-indigo-900/20 dark:to-slate-900">
+                                <h3 className="font-bold text-lg mb-2">📝 Lesson Quiz</h3>
+                                <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+                                    Test your understanding with {quiz.length} question{quiz.length > 1 ? 's' : ''}.
+                                </p>
+                                <button
+                                    onClick={() => setShowQuiz(true)}
+                                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
+                                >
+                                    Start Quiz
+                                </button>
+                            </div>
+                        ) : showQuiz ? (
+                            <Quiz
+                                title={`${title} Quiz`}
+                                questions={quiz}
+                                onComplete={(score) => {
+                                    setQuizCompleted(true);
+                                    setShowQuiz(false);
+                                    recordQuizScore(id, score);
+                                    if (score >= 70 && moduleId) {
+                                        markLessonComplete(id, moduleId);
+                                    }
+                                }}
+                            />
+                        ) : (
+                            <div className="p-4 bg-green-50 dark:bg-green-900/20 text-center">
+                                <CheckCircle className="w-6 h-6 text-green-500 mx-auto mb-2" />
+                                <p className="text-sm font-medium text-green-700 dark:text-green-300">Quiz completed!</p>
+                                <button
+                                    onClick={() => { setQuizCompleted(false); setShowQuiz(true); }}
+                                    className="text-xs text-slate-500 hover:text-slate-700 mt-2 underline"
+                                >
+                                    Retry
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Mark Complete Button */}
+                {!isEditing && moduleId && (
+                    <div className="flex justify-end">
+                        <button
+                            onClick={() => markLessonComplete(id, moduleId)}
+                            className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
+                        >
+                            <CheckCircle className="w-4 h-4" /> Mark as Complete
+                        </button>
                     </div>
                 )}
 

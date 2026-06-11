@@ -26,4 +26,8 @@ export interface DatabaseEngine {
     init(): Promise<void>;
     execute(query: string): Promise<QueryResult>;
     getSchema(): Promise<TableDefinition[]>;
+    /** Serialise the full DB state to bytes for local/cloud snapshots. */
+    serialize(): Promise<Uint8Array>;
+    /** Restore DB state from a previously serialised snapshot (no re-seeding). */
+    restore(data: Uint8Array): Promise<void>;
 }

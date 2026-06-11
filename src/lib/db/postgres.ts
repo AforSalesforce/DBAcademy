@@ -4,12 +4,20 @@ import { DatabaseEngine, TableDefinition, QueryResult } from './types';
 export class PostgresEngine implements DatabaseEngine {
     type = 'postgres' as const;
     private db: PGlite | null = null;
+    /**
+     * When set, PGlite persists automatically to IndexedDB under this path
+     * so the project survives page reloads without explicit serialize/restore.
+     */
+    private idbPath: string | null;
+
+    constructor(options?: { idbPath?: string }) {
+        this.idbPath = options?.idbPath ?? null;
+    }
 
     async init() {
-        this.db = new PGlite();
+        this.db = this.idbPath ? new PGlite(this.idbPath) : new PGlite();
         await this.db.waitReady;
 
-        // Seed initial data
         await this.db.exec(`
       CREATE TABLE IF NOT EXISTS crime_scene_report (
         date integer,
@@ -46,31 +54,44 @@ export class PostgresEngine implements DatabaseEngine {
     }
 
     async execute(query: string): Promise<QueryResult> {
-        if (!this.db) throw new Error("DB not initialized");
+        if (!this.db) throw new Error('DB not initialized');
         const res = await this.db.query(query);
         const columns = res.fields.map(f => f.name);
-        // PGlite returns rows as objects {col: val}, we want arrays for generic handling or just standardize?
-        // PGlite actually returns rows as objects by default. 
-        // Let's standardize on rows as objects for now to match UI, OR standardize to arrays. 
-        // My previous ResultsTable used objects. Let's keep using objects in the UI wrapper, 
-        // but the Interface `QueryResult` said `rows: any[][]`.
-        // Let's change the interface to `rows: any[]` (objects) to make it easier for now, 
-        // OR implementing row conversion. PGlite `query` returns `{ rows: [...] }` where rows are objects.
+        return { columns, rows: res.rows };
+    }
 
-        // Wait, let's fix the Interface `rows` type in next step or just return objects.
-        // I'll stick to objects for now for minimal change.
-        return {
-            columns,
-            rows: res.rows, // Array of objects
-        };
+    async serialize(): Promise<Uint8Array> {
+        if (!this.db) throw new Error('DB not initialized');
+        try {
+            // dumpDataDir is available in PGlite ≥ 0.2; cast to any for safety.
+            const blob: Blob = await (this.db as any).dumpDataDir('auto');
+            return new Uint8Array(await blob.arrayBuffer());
+        } catch {
+            // If idb-backed, state is already persisted; return empty marker.
+            return new Uint8Array(0);
+        }
+    }
+
+    async restore(data: Uint8Array): Promise<void> {
+        if (data.length === 0) {
+            // idb-backed project — just re-open the same idb path.
+            if (this.idbPath) {
+                this.db = new PGlite(this.idbPath);
+                await this.db.waitReady;
+            }
+            return;
+        }
+        const blob = new Blob([data.buffer as ArrayBuffer]);
+        this.db = new PGlite({ loadDataDir: blob } as any);
+        await this.db.waitReady;
     }
 
     async getSchema(): Promise<TableDefinition[]> {
-        if (!this.db) throw new Error("DB not initialized");
+        if (!this.db) throw new Error('DB not initialized');
         const res = await this.db.query(`
-      SELECT table_name, column_name, data_type 
-      FROM information_schema.columns 
-      WHERE table_schema = 'public' 
+      SELECT table_name, column_name, data_type
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
       ORDER BY table_name, ordinal_position;
     `);
 
@@ -81,7 +102,7 @@ export class PostgresEngine implements DatabaseEngine {
             }
             tables[row.table_name].columns.push({
                 name: row.column_name,
-                type: row.data_type
+                type: row.data_type,
             });
         });
 
