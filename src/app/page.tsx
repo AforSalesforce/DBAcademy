@@ -2,6 +2,7 @@ import Link from 'next/link';
 import {
   Database, GraduationCap, Zap, BookOpen, BarChart3, Code2,
   ShieldCheck, Globe, ArrowRight, Play, Terminal, Table, GitBranch,
+  BrainCircuit,
 } from 'lucide-react';
 
 const FEATURES = [
@@ -51,13 +52,14 @@ const FEATURES = [
     rotate: '',
   },
   {
-    icon: Globe,
+    icon: BrainCircuit,
     color: 'text-[#F59E0B]',
     bg: 'rgba(245, 158, 11, 0.08)',
     border: 'rgba(245, 158, 11, 0.18)',
-    title: 'Institution Ready',
-    description: 'Admin dashboards, bulk enrollment, custom curricula, SSO and SCORM for schools and companies.',
+    title: 'Code Playground',
+    description: 'Write and run JavaScript & Python directly in the browser. Switch to Java, C, Go and more with one click.',
     rotate: '',
+    href: '/code',
   },
 ];
 
@@ -65,7 +67,8 @@ const MARQUEE_ITEMS = [
   { icon: Terminal, text: 'PostgreSQL' },
   { icon: Database, text: 'SQLite' },
   { icon: Table, text: 'NoSQL' },
-  { icon: Code2, text: 'SQL Playground' },
+  { icon: Code2, text: 'JavaScript' },
+  { icon: BrainCircuit, text: 'Python' },
   { icon: GitBranch, text: 'Schema Designer' },
   { icon: BarChart3, text: 'Progress Tracking' },
   { icon: BookOpen, text: '30+ Modules' },
@@ -96,8 +99,13 @@ export default function HomePage() {
           <Link href="/auth/signin" className="text-sm transition-colors px-3 py-1.5 rounded-lg cursor-pointer hover:bg-white/5" style={{ color: '#5C6B8A' }}>
             Sign In
           </Link>
-          <Link href="/pricing" className="text-sm transition-colors px-3 py-1.5 rounded-lg cursor-pointer hover:bg-white/5" style={{ color: '#5C6B8A' }}>
+          <Link href="/pricing" className="hidden sm:block text-sm transition-colors px-3 py-1.5 rounded-lg cursor-pointer hover:bg-white/5" style={{ color: '#5C6B8A' }}>
             Pricing
+          </Link>
+          <Link href="/code"
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all cursor-pointer"
+            style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)', color: '#F59E0B' }}>
+            <Code2 className="w-3.5 h-3.5" /> Code
           </Link>
           <Link
             href="/learn"
@@ -155,12 +163,12 @@ export default function HomePage() {
                   Start Learning Free
                 </Link>
                 <Link
-                  href="/dashboard"
+                  href="/code"
                   className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl font-semibold text-base transition-all cursor-pointer"
-                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#EDF1FA' }}
+                  style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', color: '#F59E0B' }}
                 >
-                  <BarChart3 className="w-4 h-4" style={{ color: '#5C6B8A' }} />
-                  View Dashboard
+                  <Code2 className="w-4 h-4" />
+                  Try Code Sandbox
                 </Link>
               </div>
 
@@ -302,22 +310,38 @@ export default function HomePage() {
           </p>
         </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {FEATURES.map((f) => (
-            <div
-              key={f.title}
-              className={`rounded-2xl p-6 transition-all duration-300 cursor-default shine-hover ${f.rotate}`}
-              style={{
-                background: f.bg,
-                border: `1px solid ${f.border}`,
-              }}
-            >
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-4" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                <f.icon className={`w-5 h-5 ${f.color}`} />
+          {FEATURES.map((f) => {
+            const inner = (
+              <>
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-4" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <f.icon className={`w-5 h-5 ${f.color}`} />
+                </div>
+                <h3 className="font-semibold mb-2 font-display flex items-center gap-1.5" style={{ color: '#EDF1FA' }}>
+                  {f.title}
+                  {'href' in f && <ArrowRight className="w-3.5 h-3.5 opacity-50" />}
+                </h3>
+                <p className="text-sm leading-relaxed" style={{ color: '#5C6B8A' }}>{f.description}</p>
+              </>
+            );
+            return 'href' in f ? (
+              <Link
+                key={f.title}
+                href={f.href!}
+                className={`rounded-2xl p-6 transition-all duration-300 shine-hover cursor-pointer block ${f.rotate}`}
+                style={{ background: f.bg, border: `1px solid ${f.border}` }}
+              >
+                {inner}
+              </Link>
+            ) : (
+              <div
+                key={f.title}
+                className={`rounded-2xl p-6 transition-all duration-300 cursor-default shine-hover ${f.rotate}`}
+                style={{ background: f.bg, border: `1px solid ${f.border}` }}
+              >
+                {inner}
               </div>
-              <h3 className="font-semibold mb-2 font-display" style={{ color: '#EDF1FA' }}>{f.title}</h3>
-              <p className="text-sm leading-relaxed" style={{ color: '#5C6B8A' }}>{f.description}</p>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
@@ -360,7 +384,8 @@ export default function HomePage() {
         <div className="flex items-center justify-center gap-5">
           <Link href="/pricing" className="transition-colors cursor-pointer" style={{ color: '#2E3A52' }}>Pricing</Link>
           <Link href="/auth/signin" className="transition-colors cursor-pointer" style={{ color: '#2E3A52' }}>Sign In</Link>
-          <Link href="/learn" className="transition-colors cursor-pointer" style={{ color: '#2E3A52' }}>App</Link>
+          <Link href="/learn" className="transition-colors cursor-pointer" style={{ color: '#2E3A52' }}>Database</Link>
+          <Link href="/code" className="transition-colors cursor-pointer" style={{ color: '#2E3A52' }}>Code</Link>
         </div>
       </footer>
     </main>

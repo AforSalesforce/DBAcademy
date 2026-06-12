@@ -8,7 +8,7 @@ import { LessonView } from '@/components/LessonView';
 import { CodeOutput } from '@/components/CodeOutput';
 import {
   Database, GraduationCap, BarChart3, Play, BookOpen,
-  PanelLeftClose, PanelLeftOpen, Cpu, Network,
+  PanelLeftClose, PanelLeftOpen,
 } from 'lucide-react';
 import type { CodeResult, CodeEngine } from '@/lib/db/types';
 import type { LessonContentType } from '@/lib/curriculum';
@@ -344,16 +344,6 @@ export default function CodePage() {
               style={{ background: '#1C2940', color: '#F59E0B', border: '1px solid rgba(245,158,11,0.2)' }}>
               Code
             </span>
-            <Link href="/arch"
-              className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer"
-              style={{ color: '#5C6B8A' }}>
-              <Cpu className="w-3 h-3" /> Arch
-            </Link>
-            <Link href="/net"
-              className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer"
-              style={{ color: '#5C6B8A' }}>
-              <Network className="w-3 h-3" /> Net
-            </Link>
           </div>
 
           <div className="h-6 w-px hidden md:block" style={{ background: 'rgba(255,255,255,0.08)' }} />
