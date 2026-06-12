@@ -30,7 +30,7 @@ const SqlEditor: React.FC<SqlEditorProps> = ({ value, onChange, onRun, language 
             options={{
                 minimap: { enabled: false },
                 fontSize: 14,
-                padding: { top: 20 },
+                padding: { top: 10, bottom: 10 },
                 scrollBeyondLastLine: false,
                 automaticLayout: true,
                 fontFamily: "'Fira Code', 'Droid Sans Mono', 'monospace', monospace",

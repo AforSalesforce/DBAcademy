@@ -1,12 +1,22 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Bricolage_Grotesque, DM_Sans } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 
-const inter = Inter({ subsets: ["latin"] });
+const display = Bricolage_Grotesque({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-display",
+});
+
+const body = DM_Sans({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-body",
+});
 
 export const viewport: Viewport = {
-  themeColor: '#0f172a',
+  themeColor: '#07090F',
   width: 'device-width',
   initialScale: 1,
 };
@@ -30,10 +40,7 @@ export const metadata: Metadata = {
     title: "DBAcademy — Master Database Engineering",
     description: "Interactive SQL playground with guided lessons. Learn by doing.",
   },
-  robots: {
-    index: true,
-    follow: true,
-  },
+  robots: { index: true, follow: true },
 };
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -41,12 +48,10 @@ import { ProgressSync } from "@/components/ProgressSync";
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
+      <body className={`${display.variable} ${body.variable} ${body.className}`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"

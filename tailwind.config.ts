@@ -9,9 +9,31 @@ const config: Config = {
     ],
     theme: {
         extend: {
+            fontFamily: {
+                display: ['var(--font-display)', 'sans-serif'],
+                body: ['var(--font-body)', 'sans-serif'],
+            },
             colors: {
                 background: "var(--background)",
                 foreground: "var(--foreground)",
+                accent: "var(--accent)",
+                warm: "var(--warm)",
+            },
+            animation: {
+                'grain': 'grain 0.8s steps(1) infinite',
+                'marquee': 'marquee 28s linear infinite',
+            },
+            keyframes: {
+                grain: {
+                    '0%, 100%': { transform: 'translate(0, 0)' },
+                    '25%': { transform: 'translate(-3%, -5%)' },
+                    '50%': { transform: 'translate(-5%, 3%)' },
+                    '75%': { transform: 'translate(3%, -5%)' },
+                },
+                marquee: {
+                    '0%': { transform: 'translateX(0)' },
+                    '100%': { transform: 'translateX(-50%)' },
+                },
             },
         },
     },
