@@ -37,6 +37,8 @@ const Sidebar: React.FC<SidebarProps> = ({ modules, activeLessonId, onAddModule,
     const [isAddingModule, setIsAddingModule] = useState(false);
     const [newModuleTitle, setNewModuleTitle] = useState('');
     const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set(modules.map(m => m.id)));
+    const [hoveredModuleId, setHoveredModuleId] = useState<string | null>(null);
+    const [hoveredLessonId, setHoveredLessonId] = useState<string | null>(null);
 
     // We track which module acts as the active input for a new lesson
     const [addingLessonToModuleId, setAddingLessonToModuleId] = useState<string | null>(null);
@@ -74,10 +76,12 @@ const Sidebar: React.FC<SidebarProps> = ({ modules, activeLessonId, onAddModule,
         <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800">
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 {modules.map(module => (
-                    <div key={module.id} className="group">
+                    <div key={module.id}>
                         <div
                             className="flex items-center justify-between mb-2 px-2 py-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors"
                             onClick={() => toggleModule(module.id)}
+                            onMouseEnter={() => setHoveredModuleId(module.id)}
+                            onMouseLeave={() => setHoveredModuleId(null)}
                         >
                             <div className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
                                 {expandedModules.has(module.id) ? (
@@ -87,7 +91,10 @@ const Sidebar: React.FC<SidebarProps> = ({ modules, activeLessonId, onAddModule,
                                 )}
                                 <span className="uppercase tracking-wider text-xs">{module.title}</span>
                             </div>
-                            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
+                            <div className={cn(
+                                "flex items-center gap-0.5 transition-opacity",
+                                hoveredModuleId === module.id ? "opacity-100" : "opacity-0"
+                            )}>
                                 <button
                                     onClick={(e) => {
                                         e.stopPropagation();
@@ -121,12 +128,15 @@ const Sidebar: React.FC<SidebarProps> = ({ modules, activeLessonId, onAddModule,
                             <div className="space-y-1 ml-2 pl-2 border-l border-slate-200 dark:border-slate-800">
                                 {module.lessons.map(lesson => {
                                     const isActive = activeLessonId === lesson.id;
+                                    const isHovered = hoveredLessonId === lesson.id;
                                     return (
                                         <div
                                             key={lesson.id}
                                             onClick={() => onSelectLesson(lesson, module.id)}
+                                            onMouseEnter={() => setHoveredLessonId(lesson.id)}
+                                            onMouseLeave={() => setHoveredLessonId(null)}
                                             className={cn(
-                                                "group/lesson flex items-center gap-3 px-3 py-2 text-sm rounded-md cursor-pointer transition-all",
+                                                "flex items-center gap-3 px-3 py-2 text-sm rounded-md cursor-pointer transition-all",
                                                 isActive
                                                     ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 font-medium"
                                                     : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
@@ -144,7 +154,11 @@ const Sidebar: React.FC<SidebarProps> = ({ modules, activeLessonId, onAddModule,
                                                         e.stopPropagation();
                                                         onRemoveLesson(module.id, lesson.id);
                                                     }}
-                                                    className="opacity-0 group-hover/lesson:opacity-100 p-0.5 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 rounded transition-all text-slate-400 shrink-0"
+                                                    className={cn(
+                                                        "p-0.5 rounded transition-all text-slate-400 shrink-0",
+                                                        "hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400",
+                                                        isHovered ? "opacity-100" : "opacity-0"
+                                                    )}
                                                     title="Delete Lesson"
                                                 >
                                                     <Trash2 size={12} />
