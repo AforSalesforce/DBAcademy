@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { ChevronRight, ChevronDown, Plus, BookOpen, CheckCircle, Circle, Folder } from 'lucide-react';
+import { EngineType } from '@/lib/db/types';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -15,7 +16,7 @@ export interface Module {
     id: string;
     title: string;
     lessons: Lesson[];
-    engine?: 'postgres' | 'sqlite' | 'nosql';
+    engine?: EngineType;
 }
 
 interface SidebarProps {

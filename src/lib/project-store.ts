@@ -3,12 +3,13 @@
 import { create } from 'zustand';
 import { localGetAll, localPut, localDelete } from './local-db';
 import { createClient, isSupabaseConfigured } from './supabase/client';
+import { EngineType } from './db/types';
 
 export interface Project {
   id: string;
   name: string;
   description?: string;
-  engine: 'postgres' | 'sqlite' | 'nosql';
+  engine: EngineType;
   /** True for the auto-created playground projects that mirror the old engine dropdown. */
   isDefault: boolean;
   snapshotPath?: string;
@@ -17,8 +18,9 @@ export interface Project {
   updatedAt: string;
 }
 
-// Stable IDs for the three default playground projects.
-export const DEFAULT_PROJECT_IDS: Record<'postgres' | 'sqlite' | 'nosql', string> = {
+// Stable IDs for the DB-engine default playground projects.
+// Not every engine type has a default playground (code/arch/net don't).
+export const DEFAULT_PROJECT_IDS: Partial<Record<EngineType, string>> = {
   sqlite: 'default-sqlite',
   postgres: 'default-postgres',
   nosql: 'default-nosql',
@@ -26,7 +28,7 @@ export const DEFAULT_PROJECT_IDS: Record<'postgres' | 'sqlite' | 'nosql', string
 
 const DEFAULT_PROJECTS: Project[] = [
   {
-    id: DEFAULT_PROJECT_IDS.sqlite,
+    id: DEFAULT_PROJECT_IDS.sqlite!,
     name: 'SQLite Playground',
     engine: 'sqlite',
     isDefault: true,
@@ -34,7 +36,7 @@ const DEFAULT_PROJECTS: Project[] = [
     updatedAt: new Date(0).toISOString(),
   },
   {
-    id: DEFAULT_PROJECT_IDS.postgres,
+    id: DEFAULT_PROJECT_IDS.postgres!,
     name: 'PostgreSQL Playground',
     engine: 'postgres',
     isDefault: true,
@@ -42,7 +44,7 @@ const DEFAULT_PROJECTS: Project[] = [
     updatedAt: new Date(0).toISOString(),
   },
   {
-    id: DEFAULT_PROJECT_IDS.nosql,
+    id: DEFAULT_PROJECT_IDS.nosql!,
     name: 'NoSQL Playground',
     engine: 'nosql',
     isDefault: true,
@@ -59,7 +61,7 @@ interface ProjectStore {
   hydrate(): Promise<void>;
   createProject(
     name: string,
-    engine: 'postgres' | 'sqlite' | 'nosql',
+    engine: EngineType,
     description?: string
   ): Promise<Project>;
   updateProject(id: string, updates: Partial<Pick<Project, 'name' | 'description'>>): Promise<void>;
@@ -70,7 +72,7 @@ interface ProjectStore {
 
 export const useProjectStore = create<ProjectStore>((set, get) => ({
   projects: DEFAULT_PROJECTS,
-  activeProjectId: DEFAULT_PROJECT_IDS.sqlite,
+  activeProjectId: DEFAULT_PROJECT_IDS.sqlite!,
   hydrated: false,
 
   async hydrate() {
@@ -122,7 +124,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     }
   },
 
-  async createProject(name, engine, description) {
+  async createProject(name: string, engine: EngineType, description?: string) {
     const now = new Date().toISOString();
     const project: Project = {
       id: crypto.randomUUID(),
@@ -177,9 +179,10 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     set(s => ({ projects: s.projects.filter(p => p.id !== id) }));
     await localDelete('projects', id);
 
-    // Switch active project to matching playground if we just deleted the active one.
+    // Switch active project to the engine's playground, or the SQLite fallback.
     if (get().activeProjectId === id) {
-      get().setActiveProject(DEFAULT_PROJECT_IDS[project.engine]);
+      const fallback = DEFAULT_PROJECT_IDS[project.engine] ?? DEFAULT_PROJECT_IDS.sqlite!;
+      get().setActiveProject(fallback);
     }
 
     if (isSupabaseConfigured) {

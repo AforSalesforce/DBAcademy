@@ -2,6 +2,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { CURRICULUM } from './curriculum';
 
 export interface LessonProgress {
   lessonId: string;
@@ -67,7 +68,7 @@ export const useProgressStore = create<ProgressStore>()(
     (set, get) => ({
       progress: {
         lessonsCompleted: 0,
-        totalLessons: 30,
+        totalLessons: CURRICULUM.reduce((n, m) => n + m.lessons.length, 0),
         quizzesPassed: 0,
         queriesExecuted: 0,
         streak: 0,

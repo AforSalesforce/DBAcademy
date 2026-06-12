@@ -3,9 +3,10 @@
 import React, { useState } from 'react';
 import { Star, Trash2, Play, Pencil, Check, X } from 'lucide-react';
 import { useSavedQueriesStore, SavedQuery } from '@/lib/saved-queries-store';
+import { EngineType } from '@/lib/db/types';
 
 interface Props {
-  activeEngine: 'postgres' | 'sqlite' | 'nosql';
+  activeEngine: EngineType;
   activeProjectId: string | null;
   onLoad: (body: string) => void;
   onRun: (body: string) => void;

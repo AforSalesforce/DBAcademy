@@ -18,7 +18,7 @@ import {
   PanelLeftClose, PanelLeftOpen,
   BookOpen, Table2, GitBranch, Bookmark, LayoutTemplate,
 } from 'lucide-react';
-import { DatabaseEngine, TableDefinition } from '@/lib/db/types';
+import { DatabaseEngine, TableDefinition, EngineType } from '@/lib/db/types';
 import { PostgresEngine } from '@/lib/db/postgres';
 import { SQLiteEngine } from '@/lib/db/sqlite';
 import { NoSQLEngine } from '@/lib/db/nosql';
@@ -71,7 +71,7 @@ function mergeWithCurriculum(saved: Module[]): Module[] {
 
 export default function LearnPage() {
   // ── DB / engine state ──────────────────────────────────────────────────────
-  const [dbType, setDbType] = useState<'postgres' | 'sqlite' | 'nosql'>('sqlite');
+  const [dbType, setDbType] = useState<EngineType>('sqlite');
   const [db, setDb] = useState<DatabaseEngine | null>(null);
   const [query, setQuery] = useState(DEFAULT_QUERY_SQL);
   const [results, setResults] = useState<any[]>([]);
@@ -109,12 +109,12 @@ export default function LearnPage() {
   const projectStore = useProjectStore();
   const [projectMenuOpen, setProjectMenuOpen] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
-  const [newProjectEngine, setNewProjectEngine] = useState<'postgres' | 'sqlite' | 'nosql'>('sqlite');
+  const [newProjectEngine, setNewProjectEngine] = useState<EngineType>('sqlite');
   const [showNewProject, setShowNewProject] = useState(false);
   const projectMenuRef = useRef<HTMLDivElement>(null);
 
   // ── Save-query modal ───────────────────────────────────────────────────────
-  const [saveQueryModal, setSaveQueryModal] = useState<{ body: string; engine: 'postgres' | 'sqlite' | 'nosql' } | null>(null);
+  const [saveQueryModal, setSaveQueryModal] = useState<{ body: string; engine: EngineType } | null>(null);
   const [saveQueryTitle, setSaveQueryTitle] = useState('');
 
   // ── Stores ─────────────────────────────────────────────────────────────────
@@ -591,7 +591,8 @@ export default function LearnPage() {
       const module = modules.find(m => m.id === moduleId);
       if (module?.engine && module.engine !== dbType) {
         // Switch to the matching default playground for that engine
-        projectStore.setActiveProject(DEFAULT_PROJECT_IDS[module.engine]);
+        const playgroundId = DEFAULT_PROJECT_IDS[module.engine] ?? DEFAULT_PROJECT_IDS.sqlite!;
+        projectStore.setActiveProject(playgroundId);
       }
       if (fullLesson.defaultQuery) setQuery(fullLesson.defaultQuery);
     } else {

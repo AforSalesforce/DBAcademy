@@ -1,14 +1,15 @@
 'use client';
 
 const DB_NAME = 'dbacademy-workspace';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 export type EntityStore =
   | 'projects'
   | 'saved-queries'
   | 'notes'
   | 'schema-designs'
-  | 'run-history';
+  | 'run-history'
+  | 'code-history';
 
 let _db: IDBDatabase | null = null;
 
@@ -25,6 +26,7 @@ function openDb(): Promise<IDBDatabase> {
         'notes',
         'schema-designs',
         'run-history',
+        'code-history',
       ];
       for (const name of entityStores) {
         if (!db.objectStoreNames.contains(name)) {

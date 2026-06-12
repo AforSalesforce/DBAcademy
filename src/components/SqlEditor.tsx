@@ -7,7 +7,7 @@ interface SqlEditorProps {
     value: string;
     onChange: (value: string | undefined) => void;
     onRun: () => void;
-    language?: 'sql' | 'javascript';
+    language?: string;
 }
 
 const SqlEditor: React.FC<SqlEditorProps> = ({ value, onChange, onRun, language = 'sql' }) => {

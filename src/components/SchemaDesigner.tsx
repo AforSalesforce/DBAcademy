@@ -11,11 +11,11 @@ import {
   introspectToDesign,
   useSchemaDesignerStore,
 } from '@/lib/schema-designer';
-import { TableDefinition } from '@/lib/db/types';
+import { TableDefinition, EngineType } from '@/lib/db/types';
 import ERDiagram from './ERDiagram';
 
 interface Props {
-  engine: 'postgres' | 'sqlite' | 'nosql';
+  engine: EngineType;
   projectId: string | null;
   currentSchema: TableDefinition[];
   /** Called when the user wants to run generated DDL in the editor. */
@@ -43,7 +43,7 @@ const emptyDesign = (engine: 'postgres' | 'sqlite', projectId: string | null): S
 
 export function SchemaDesigner({ engine, projectId, currentSchema, onApplyDDL }: Props) {
   const { designs, saveDesign, deleteDesign } = useSchemaDesignerStore();
-  const safeEngine = engine === 'nosql' ? 'sqlite' : engine;
+  const safeEngine: 'postgres' | 'sqlite' = engine === 'postgres' ? 'postgres' : 'sqlite';
 
   const projectDesigns = designs.filter(
     d => d.projectId === projectId && d.engine === safeEngine

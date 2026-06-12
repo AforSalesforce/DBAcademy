@@ -3,6 +3,7 @@
 import { create } from 'zustand';
 import { localGetAll, localPut, localDelete } from './local-db';
 import { createClient, isSupabaseConfigured } from './supabase/client';
+import { EngineType } from './db/types';
 
 export interface SavedQuery {
   id: string;
@@ -10,7 +11,7 @@ export interface SavedQuery {
   projectId: string | null;
   title: string;
   body: string;
-  engine: 'postgres' | 'sqlite' | 'nosql';
+  engine: EngineType;
   favorite: boolean;
   createdAt: string;
   updatedAt: string;
@@ -22,8 +23,7 @@ interface SavedQueriesStore {
 
   hydrate(): Promise<void>;
   saveQuery(
-    params: Pick<SavedQuery, 'title' | 'body' | 'engine'> &
-      Partial<Pick<SavedQuery, 'projectId' | 'id'>>
+    params: Pick<SavedQuery, 'title' | 'body' | 'engine'> & Partial<Pick<SavedQuery, 'projectId' | 'id'>>
   ): Promise<SavedQuery>;
   updateQuery(
     id: string,

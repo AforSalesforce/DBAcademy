@@ -1,4 +1,5 @@
 import { QuizQuestion } from '@/components/Quiz';
+import { EngineType } from '@/lib/db/types';
 
 export interface LessonContentType {
     id: string;
@@ -11,7 +12,7 @@ export interface LessonContentType {
 export interface ModuleType {
     id: string;
     title: string;
-    engine: 'postgres' | 'sqlite' | 'nosql';
+    engine: EngineType;
     lessons: LessonContentType[];
 }
 
