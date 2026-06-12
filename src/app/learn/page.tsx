@@ -576,6 +576,33 @@ export default function LearnPage() {
     });
   };
 
+  const handleRemoveModule = (moduleId: string) => {
+    setModules(prev => {
+      const updated = prev.filter(m => m.id !== moduleId);
+      localStorage.setItem('db_academy_modules', JSON.stringify(updated));
+      return updated;
+    });
+    if (activeLessonModuleId === moduleId) {
+      setActiveLesson(null);
+      setActiveLessonModuleId(null);
+    }
+  };
+
+  const handleRemoveLesson = (moduleId: string, lessonId: string) => {
+    setModules(prev => {
+      const updated = prev.map(m => m.id === moduleId
+        ? { ...m, lessons: m.lessons.filter(l => l.id !== lessonId) }
+        : m
+      );
+      localStorage.setItem('db_academy_modules', JSON.stringify(updated));
+      return updated;
+    });
+    if (activeLesson?.id === lessonId) {
+      setActiveLesson(null);
+      setActiveLessonModuleId(null);
+    }
+  };
+
   const handleUpdateLessonContent = (id: string, newContent: string) => {
     const updated = { ...userLessons, [id]: newContent };
     setUserLessons(updated);
@@ -850,6 +877,8 @@ export default function LearnPage() {
                     onAddModule={handleAddModule}
                     onAddLesson={handleAddLesson}
                     onSelectLesson={handleSelectLesson}
+                    onRemoveModule={handleRemoveModule}
+                    onRemoveLesson={handleRemoveLesson}
                   />
                 )}
                 {activeTab === 'schema' && <SchemaViewer tables={schema} onViewTable={handleViewTable} />}

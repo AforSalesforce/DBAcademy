@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ChevronRight, ChevronDown, Plus, BookOpen, CheckCircle, Circle, Folder } from 'lucide-react';
+import { ChevronRight, ChevronDown, Plus, CheckCircle, Circle, Folder, Trash2 } from 'lucide-react';
 import { EngineType } from '@/lib/db/types';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -25,13 +25,15 @@ interface SidebarProps {
     onAddModule: (title: string) => void;
     onAddLesson: (moduleId: string, title: string) => void;
     onSelectLesson: (lesson: Lesson, moduleId: string) => void;
+    onRemoveModule?: (moduleId: string) => void;
+    onRemoveLesson?: (moduleId: string, lessonId: string) => void;
 }
 
 export function cn(...inputs: (string | undefined | null | false)[]) {
     return twMerge(clsx(inputs));
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ modules, activeLessonId, onAddModule, onAddLesson, onSelectLesson }) => {
+const Sidebar: React.FC<SidebarProps> = ({ modules, activeLessonId, onAddModule, onAddLesson, onSelectLesson, onRemoveModule, onRemoveLesson }) => {
     const [isAddingModule, setIsAddingModule] = useState(false);
     const [newModuleTitle, setNewModuleTitle] = useState('');
     const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set(modules.map(m => m.id)));
@@ -85,17 +87,34 @@ const Sidebar: React.FC<SidebarProps> = ({ modules, activeLessonId, onAddModule,
                                 )}
                                 <span className="uppercase tracking-wider text-xs">{module.title}</span>
                             </div>
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setAddingLessonToModuleId(module.id);
-                                    if (!expandedModules.has(module.id)) toggleModule(module.id);
-                                }}
-                                className="opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-all"
-                                title="Add Lesson"
-                            >
-                                <Plus size={14} />
-                            </button>
+                            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setAddingLessonToModuleId(module.id);
+                                        if (!expandedModules.has(module.id)) toggleModule(module.id);
+                                    }}
+                                    className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors"
+                                    title="Add Lesson"
+                                >
+                                    <Plus size={14} />
+                                </button>
+                                {onRemoveModule && (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (module.lessons.length > 0) {
+                                                if (!window.confirm(`Delete "${module.title}" and its ${module.lessons.length} lesson${module.lessons.length !== 1 ? 's' : ''}?`)) return;
+                                            }
+                                            onRemoveModule(module.id);
+                                        }}
+                                        className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 rounded transition-colors text-slate-400"
+                                        title="Delete Module"
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
+                                )}
+                            </div>
                         </div>
 
                         {expandedModules.has(module.id) && (
@@ -107,18 +126,30 @@ const Sidebar: React.FC<SidebarProps> = ({ modules, activeLessonId, onAddModule,
                                             key={lesson.id}
                                             onClick={() => onSelectLesson(lesson, module.id)}
                                             className={cn(
-                                                "flex items-center gap-3 px-3 py-2 text-sm rounded-md cursor-pointer transition-all",
+                                                "group/lesson flex items-center gap-3 px-3 py-2 text-sm rounded-md cursor-pointer transition-all",
                                                 isActive
                                                     ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 font-medium"
                                                     : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
                                             )}
                                         >
                                             {lesson.completed ? (
-                                                <CheckCircle size={16} className="text-green-500" />
+                                                <CheckCircle size={16} className="text-green-500 shrink-0" />
                                             ) : (
-                                                <Circle size={16} className={cn("text-slate-400", isActive && "text-blue-500")} />
+                                                <Circle size={16} className={cn("text-slate-400 shrink-0", isActive && "text-blue-500")} />
                                             )}
-                                            <span className="truncate">{lesson.title}</span>
+                                            <span className="truncate flex-1">{lesson.title}</span>
+                                            {onRemoveLesson && (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        onRemoveLesson(module.id, lesson.id);
+                                                    }}
+                                                    className="opacity-0 group-hover/lesson:opacity-100 p-0.5 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 rounded transition-all text-slate-400 shrink-0"
+                                                    title="Delete Lesson"
+                                                >
+                                                    <Trash2 size={12} />
+                                                </button>
+                                            )}
                                         </div>
                                     );
                                 })}

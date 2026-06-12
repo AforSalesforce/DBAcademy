@@ -296,6 +296,25 @@ export default function CodePage() {
     setOutput(null);
   };
 
+  const handleRemoveModule = (moduleId: string) => {
+    setModules(prev => prev.filter(m => m.id !== moduleId));
+    if (activeLessonModuleId === moduleId) {
+      setActiveLesson(null);
+      setActiveLessonModuleId(null);
+    }
+  };
+
+  const handleRemoveLesson = (moduleId: string, lessonId: string) => {
+    setModules(prev => prev.map(m => m.id === moduleId
+      ? { ...m, lessons: m.lessons.filter(l => l.id !== lessonId) }
+      : m
+    ));
+    if (activeLesson?.id === lessonId) {
+      setActiveLesson(null);
+      setActiveLessonModuleId(null);
+    }
+  };
+
   // ── Derived state ─────────────────────────────────────────────────────────
 
   const isFirstPython   = language === 'python' && !initializedLangs.current.has('python');
@@ -430,6 +449,8 @@ export default function CodePage() {
                 onSelectLesson={handleSelectLesson}
                 onAddModule={() => {}}
                 onAddLesson={() => {}}
+                onRemoveModule={handleRemoveModule}
+                onRemoveLesson={handleRemoveLesson}
               />
             </div>
           )}
