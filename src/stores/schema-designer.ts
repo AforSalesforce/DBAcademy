@@ -1,8 +1,8 @@
 'use client';
 
 import { create } from 'zustand';
-import { localGetAll, localPut, localDelete } from './local-db';
-import { TableDefinition } from './db/types';
+import { localGetAll, localPut, localDelete } from '@/lib/persistence/local-db';
+import { TableDefinition } from '@/db-engines/types';
 
 // ── Data model ────────────────────────────────────────────────────────────────
 

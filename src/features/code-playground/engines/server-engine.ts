@@ -1,4 +1,4 @@
-import type { CodeEngine, CodeResult, EngineType } from '@/lib/db/types';
+import type { CodeEngine, CodeResult, EngineType } from '@/db-engines/types';
 
 /** Executes code via /api/code/execute → self-hosted Piston instance. */
 export class ServerCodeEngine implements CodeEngine {

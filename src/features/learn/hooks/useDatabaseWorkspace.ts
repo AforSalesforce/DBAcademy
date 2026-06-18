@@ -2,13 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { faker } from '@faker-js/faker';
-import { DatabaseEngine, TableDefinition, EngineType } from '@/lib/db/types';
-import { PostgresEngine } from '@/lib/db/postgres';
-import { SQLiteEngine } from '@/lib/db/sqlite';
-import { NoSQLEngine } from '@/lib/db/nosql';
-import { useProgressStore } from '@/lib/progress-store';
-import { useRunHistoryStore } from '@/lib/run-history-store';
-import { saveSnapshot, loadSnapshot } from '@/lib/local-db';
+import { DatabaseEngine, TableDefinition, EngineType } from '@/db-engines/types';
+import { PostgresEngine } from '@/db-engines/postgres';
+import { SQLiteEngine } from '@/db-engines/sqlite';
+import { NoSQLEngine } from '@/db-engines/nosql';
+import { useProgressStore } from '@/stores/progress-store';
+import { useRunHistoryStore } from '@/stores/run-history-store';
+import { saveSnapshot, loadSnapshot } from '@/lib/persistence/local-db';
 
 export const DEFAULT_QUERY_SQL = `-- Find the killer
 SELECT * FROM crime_scene_report

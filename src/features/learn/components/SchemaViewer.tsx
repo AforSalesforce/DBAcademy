@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { TableDefinition } from '@/lib/db/types';
+import { TableDefinition } from '@/db-engines/types';
 
 interface SchemaViewerProps {
     tables: TableDefinition[];

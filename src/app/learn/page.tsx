@@ -2,33 +2,33 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import SqlEditor from '@/components/SqlEditor';
-import ResultsTable from '@/components/ResultsTable';
-import Sidebar, { Module, Lesson } from '@/components/Sidebar';
-import SchemaViewer from '@/components/SchemaViewer';
-import ERDiagram from '@/components/ERDiagram';
-import { LessonView } from '@/components/LessonView';
-import { SavedQueriesPanel } from '@/components/SavedQueriesPanel';
-import { RunHistory } from '@/components/RunHistory';
-import { NotesDrawer } from '@/components/NotesDrawer';
-import { SchemaDesigner } from '@/components/SchemaDesigner';
+import SqlEditor from '@/features/learn/components/SqlEditor';
+import ResultsTable from '@/features/learn/components/ResultsTable';
+import Sidebar, { Module, Lesson } from '@/features/learn/components/Sidebar';
+import SchemaViewer from '@/features/learn/components/SchemaViewer';
+import ERDiagram from '@/features/learn/components/ERDiagram';
+import { LessonView } from '@/features/learn/components/LessonView';
+import { SavedQueriesPanel } from '@/features/learn/components/SavedQueriesPanel';
+import { RunHistory } from '@/features/learn/components/RunHistory';
+import { NotesDrawer } from '@/features/learn/components/NotesDrawer';
+import { SchemaDesigner } from '@/features/learn/components/SchemaDesigner';
 import {
   Database, GraduationCap, BarChart3, NotebookPen, ChevronDown, ChevronUp,
   FolderOpen, Plus, Trash2, Check, Play, Sprout, RotateCcw,
   PanelLeftClose, PanelLeftOpen,
   BookOpen, Table2, GitBranch, Bookmark, LayoutTemplate,
 } from 'lucide-react';
-import { EngineType } from '@/lib/db/types';
-import { CURRICULUM, getLessonById, LessonContentType } from '@/lib/curriculum';
+import { EngineType } from '@/db-engines/types';
+import { CURRICULUM, getLessonById, LessonContentType } from '@/features/learn/curriculum/curriculum';
 import { useProfile } from '@/lib/use-profile';
-import { canCreateCustomModule, canCreateProject, canSaveQuery } from '@/lib/plans';
-import { useProjectStore, DEFAULT_PROJECT_IDS, Project } from '@/lib/project-store';
-import { useSavedQueriesStore } from '@/lib/saved-queries-store';
-import { useRunHistoryStore } from '@/lib/run-history-store';
-import { useNotesStore } from '@/lib/notes-store';
-import { useSchemaDesignerStore } from '@/lib/schema-designer';
-import { useProgressStore } from '@/lib/progress-store';
-import { useDatabaseWorkspace, DEFAULT_QUERY_NOSQL } from '@/lib/learn/useDatabaseWorkspace';
+import { canCreateCustomModule, canCreateProject, canSaveQuery } from '@/features/billing/plans';
+import { useProjectStore, DEFAULT_PROJECT_IDS, Project } from '@/stores/project-store';
+import { useSavedQueriesStore } from '@/stores/saved-queries-store';
+import { useRunHistoryStore } from '@/stores/run-history-store';
+import { useNotesStore } from '@/stores/notes-store';
+import { useSchemaDesignerStore } from '@/stores/schema-designer';
+import { useProgressStore } from '@/stores/progress-store';
+import { useDatabaseWorkspace, DEFAULT_QUERY_NOSQL } from '@/features/learn/hooks/useDatabaseWorkspace';
 
 // ── module helpers (unchanged from original) ──────────────────────────────────
 

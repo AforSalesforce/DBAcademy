@@ -1,4 +1,4 @@
-import type { ModuleType, LessonContentType } from './curriculum';
+import type { ModuleType, LessonContentType } from '@/features/learn/curriculum/curriculum';
 
 // Curriculum for server-executed compiled languages (Java, C, C++, Go).
 // Code examples shown are in C — the user switches the language selector

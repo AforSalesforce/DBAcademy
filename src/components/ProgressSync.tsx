@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
-import { useProgressStore, UserProgress } from '@/lib/progress-store';
+import { useProgressStore, UserProgress } from '@/stores/progress-store';
 
 const SAVE_DEBOUNCE_MS = 2000;
 

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { ChevronRight, ChevronDown, Plus, CheckCircle, Circle, Folder, Trash2 } from 'lucide-react';
-import { EngineType } from '@/lib/db/types';
+import { EngineType } from '@/db-engines/types';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 

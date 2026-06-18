@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { X, Pin, Trash2, Plus, Eye, Pencil } from 'lucide-react';
-import { useNotesStore, Note } from '@/lib/notes-store';
+import { useNotesStore, Note } from '@/stores/notes-store';
 
 interface Props {
   lessonId?: string | null;

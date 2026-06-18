@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
-import type { Plan } from '@/lib/plans';
+import type { Plan } from '@/features/billing/plans';
 
 export interface Profile {
   id: string;

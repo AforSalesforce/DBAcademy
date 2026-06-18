@@ -1,4 +1,4 @@
-import type { CodeEngine, CodeResult, EngineType } from '@/lib/db/types';
+import type { CodeEngine, CodeResult, EngineType } from '@/db-engines/types';
 
 const TIMEOUT_MS = 10_000;
 const MAX_LINES = 500;

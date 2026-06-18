@@ -3,8 +3,8 @@
 import React, { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useProgressStore } from '@/lib/progress-store';
-import { CURRICULUM } from '@/lib/curriculum';
+import { useProgressStore } from '@/stores/progress-store';
+import { CURRICULUM } from '@/features/learn/curriculum/curriculum';
 import { useProfile } from '@/lib/use-profile';
 import { SiteFooter } from '@/components/SiteFooter';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';

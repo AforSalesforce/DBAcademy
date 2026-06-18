@@ -1,4 +1,4 @@
-import type { CodeEngine, CodeResult, EngineType } from '@/lib/db/types';
+import type { CodeEngine, CodeResult, EngineType } from '@/db-engines/types';
 
 export class PythonEngine implements CodeEngine {
   readonly type = 'python' as EngineType;

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Terminal, CheckCircle, XCircle, Clock } from 'lucide-react';
-import type { CodeResult } from '@/lib/db/types';
+import type { CodeResult } from '@/db-engines/types';
 
 interface CodeOutputProps {
   result: CodeResult | null;

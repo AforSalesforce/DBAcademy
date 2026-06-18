@@ -1,7 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
-import { localGetAll, localPut, localDelete, localClear } from './local-db';
+import { localGetAll, localPut, localDelete, localClear } from '@/lib/persistence/local-db';
 
 export interface CodeRun {
   id: string;

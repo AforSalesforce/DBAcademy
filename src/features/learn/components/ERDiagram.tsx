@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import mermaid from 'mermaid';
-import { TableDefinition } from '@/lib/db/types';
+import { TableDefinition } from '@/db-engines/types';
 
 interface ERDiagramProps {
     tables: TableDefinition[];

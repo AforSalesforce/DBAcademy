@@ -2,8 +2,8 @@
 
 import React, { useState } from 'react';
 import { Star, Trash2, Play, Pencil, Check, X } from 'lucide-react';
-import { useSavedQueriesStore, SavedQuery } from '@/lib/saved-queries-store';
-import { EngineType } from '@/lib/db/types';
+import { useSavedQueriesStore, SavedQuery } from '@/stores/saved-queries-store';
+import { EngineType } from '@/db-engines/types';
 
 interface Props {
   activeEngine: EngineType;

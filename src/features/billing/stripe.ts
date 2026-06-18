@@ -1,5 +1,5 @@
 import Stripe from 'stripe';
-import type { Plan } from '@/lib/plans';
+import type { Plan } from '@/features/billing/plans';
 
 /** Server-side Stripe client. */
 export function getStripe(): Stripe {

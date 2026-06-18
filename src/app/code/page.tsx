@@ -2,25 +2,25 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import SqlEditor from '@/components/SqlEditor';
-import Sidebar, { Module, Lesson } from '@/components/Sidebar';
-import { LessonView } from '@/components/LessonView';
-import { CodeOutput } from '@/components/CodeOutput';
+import SqlEditor from '@/features/learn/components/SqlEditor';
+import Sidebar, { Module, Lesson } from '@/features/learn/components/Sidebar';
+import { LessonView } from '@/features/learn/components/LessonView';
+import { CodeOutput } from '@/features/code-playground/components/CodeOutput';
 import {
   Database, GraduationCap, BarChart3, Play, BookOpen,
   PanelLeftClose, PanelLeftOpen,
 } from 'lucide-react';
-import type { CodeResult, CodeEngine } from '@/lib/db/types';
-import type { LessonContentType } from '@/lib/curriculum';
-import { JavaScriptEngine } from '@/lib/code/js-engine';
-import { PythonEngine }     from '@/lib/code/python-engine';
-import { ServerCodeEngine } from '@/lib/code/server-engine';
-import { CODE_CURRICULUM,     getCodeLessonById }     from '@/lib/code-curriculum';
-import { PYTHON_CURRICULUM,   getPythonLessonById }   from '@/lib/python-curriculum';
-import { COMPILED_CURRICULUM, getCompiledLessonById } from '@/lib/compiled-curriculum';
-import { useProgressStore } from '@/lib/progress-store';
-import { useCodeHistoryStore } from '@/lib/code-history-store';
-import type { ModuleType } from '@/lib/curriculum';
+import type { CodeResult, CodeEngine } from '@/db-engines/types';
+import type { LessonContentType } from '@/features/learn/curriculum/curriculum';
+import { JavaScriptEngine } from '@/features/code-playground/engines/js-engine';
+import { PythonEngine }     from '@/features/code-playground/engines/python-engine';
+import { ServerCodeEngine } from '@/features/code-playground/engines/server-engine';
+import { CODE_CURRICULUM,     getCodeLessonById }     from '@/features/code-playground/curriculum/code-curriculum';
+import { PYTHON_CURRICULUM,   getPythonLessonById }   from '@/features/code-playground/curriculum/python-curriculum';
+import { COMPILED_CURRICULUM, getCompiledLessonById } from '@/features/code-playground/curriculum/compiled-curriculum';
+import { useProgressStore } from '@/stores/progress-store';
+import { useCodeHistoryStore } from '@/stores/code-history-store';
+import type { ModuleType } from '@/features/learn/curriculum/curriculum';
 
 // ── Language configuration ────────────────────────────────────────────────────
 

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { getStripe, getPriceId, type BillingInterval, type PaidPlan } from '@/lib/stripe';
+import { getStripe, getPriceId, type BillingInterval, type PaidPlan } from '@/features/billing/stripe';
 
 export async function POST(request: NextRequest) {
   try {

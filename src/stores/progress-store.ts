@@ -2,7 +2,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { CURRICULUM } from './curriculum';
+import { CURRICULUM } from '@/features/learn/curriculum/curriculum';
 
 export interface LessonProgress {
   lessonId: string;

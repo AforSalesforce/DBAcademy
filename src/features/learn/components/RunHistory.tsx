@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Play, Bookmark, Trash2, CheckCircle, XCircle } from 'lucide-react';
-import { useRunHistoryStore, QueryRun } from '@/lib/run-history-store';
+import { useRunHistoryStore, QueryRun } from '@/stores/run-history-store';
 
 interface Props {
   activeProjectId: string;

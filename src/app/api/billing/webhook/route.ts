@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type Stripe from 'stripe';
-import { getStripe, planFromPriceId } from '@/lib/stripe';
+import { getStripe, planFromPriceId } from '@/features/billing/stripe';
 import { createAdminClient } from '@/lib/supabase/admin';
 
 /**

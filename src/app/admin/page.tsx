@@ -4,8 +4,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
 import { useProfile } from '@/lib/use-profile';
-import { CURRICULUM } from '@/lib/curriculum';
-import type { UserProgress } from '@/lib/progress-store';
+import { CURRICULUM } from '@/features/learn/curriculum/curriculum';
+import type { UserProgress } from '@/stores/progress-store';
 import {
   Database, Users, BookOpen, BarChart3, Settings, Search, Copy, Check,
   TrendingUp, Award, Building2,

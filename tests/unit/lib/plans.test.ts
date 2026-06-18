@@ -5,7 +5,7 @@ import {
   canCreateProject,
   canSaveQuery,
   canCreateSchemaDesign,
-} from '@/lib/plans';
+} from '@/features/billing/plans';
 
 describe('plans', () => {
   it('free plan allows up to its module/project/query/design limits', () => {

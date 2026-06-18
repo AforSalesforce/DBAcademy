@@ -1,9 +1,9 @@
 'use client';
 
 import { create } from 'zustand';
-import { localGetAll, localPut, localDelete } from './local-db';
+import { localGetAll, localPut, localDelete } from '@/lib/persistence/local-db';
 import { mergeById, pullRemote, pushUpsert, pushDelete } from './sync/supabase-sync';
-import { EngineType } from './db/types';
+import { EngineType } from '@/db-engines/types';
 
 export interface SavedQuery {
   id: string;

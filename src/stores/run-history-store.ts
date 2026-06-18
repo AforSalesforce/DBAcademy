@@ -1,8 +1,8 @@
 'use client';
 
 import { create } from 'zustand';
-import { localGetAll, localPut, localDelete, localClear } from './local-db';
-import { EngineType } from './db/types';
+import { localGetAll, localPut, localDelete, localClear } from '@/lib/persistence/local-db';
+import { EngineType } from '@/db-engines/types';
 
 export interface QueryRun {
   id: string;

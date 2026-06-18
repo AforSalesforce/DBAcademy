@@ -1,5 +1,5 @@
-import { QuizQuestion } from '@/components/Quiz';
-import { EngineType } from '@/lib/db/types';
+import { QuizQuestion } from '@/features/learn/components/Quiz';
+import { EngineType } from '@/db-engines/types';
 
 export interface LessonContentType {
     id: string;

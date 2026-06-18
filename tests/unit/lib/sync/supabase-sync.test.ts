@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mergeById } from '@/lib/sync/supabase-sync';
+import { mergeById } from '@/stores/sync/supabase-sync';
 
 interface Item { id: string; updatedAt: string; label: string }
 

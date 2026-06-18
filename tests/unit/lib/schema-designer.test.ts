@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateDDL, introspectToDesign, type SchemaDesign } from '@/lib/schema-designer';
+import { generateDDL, introspectToDesign, type SchemaDesign } from '@/stores/schema-designer';
 
 function design(overrides: Partial<SchemaDesign> = {}): SchemaDesign {
   return {

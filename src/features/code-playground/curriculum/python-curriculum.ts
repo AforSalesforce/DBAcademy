@@ -1,4 +1,4 @@
-import type { ModuleType, LessonContentType } from './curriculum';
+import type { ModuleType, LessonContentType } from '@/features/learn/curriculum/curriculum';
 
 export const PYTHON_CURRICULUM: ModuleType[] = [
   {

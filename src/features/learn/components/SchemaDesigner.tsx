@@ -10,8 +10,8 @@ import {
   generateDDL,
   introspectToDesign,
   useSchemaDesignerStore,
-} from '@/lib/schema-designer';
-import { TableDefinition, EngineType } from '@/lib/db/types';
+} from '@/stores/schema-designer';
+import { TableDefinition, EngineType } from '@/db-engines/types';
 import ERDiagram from './ERDiagram';
 
 interface Props {

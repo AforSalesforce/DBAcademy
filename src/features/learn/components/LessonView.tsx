@@ -3,7 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { BookOpen, AlertCircle, X, StickyNote, CheckCircle } from 'lucide-react';
 import { Quiz, QuizQuestion } from './Quiz';
-import { useProgressStore } from '@/lib/progress-store';
+import { useProgressStore } from '@/stores/progress-store';
 
 interface LessonViewProps {
     id: string;
