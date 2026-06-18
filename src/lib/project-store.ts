@@ -2,7 +2,7 @@
 
 import { create } from 'zustand';
 import { localGetAll, localPut, localDelete } from './local-db';
-import { createClient, isSupabaseConfigured } from './supabase/client';
+import { mergeById, pullRemote, pushUpsert, pushDelete } from './sync/supabase-sync';
 import { EngineType } from './db/types';
 
 export interface Project {
@@ -84,38 +84,23 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
       set({ projects: [...DEFAULT_PROJECTS, ...userProjects], hydrated: true });
 
       // Background Supabase sync.
-      if (isSupabaseConfigured) {
-        try {
-          const supabase = createClient();
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user) {
-            const { data } = await supabase
-              .from('projects')
-              .select('*')
-              .eq('owner_id', user.id);
-            if (data && data.length > 0) {
-              const remote = data.map((r: any) => ({
-                id: r.id,
-                name: r.name,
-                description: r.description,
-                engine: r.engine,
-                isDefault: false,
-                snapshotPath: r.snapshot_path,
-                snapshotAt: r.snapshot_at,
-                createdAt: r.created_at,
-                updatedAt: r.updated_at,
-              })) as Project[];
-              // Last-write-wins: merge by updatedAt
-              const merged = mergeById([...DEFAULT_PROJECTS, ...userProjects], remote);
-              set({ projects: merged });
-              // Persist merged set locally
-              for (const p of merged.filter(p => !p.isDefault)) {
-                await localPut('projects', p);
-              }
-            }
-          }
-        } catch {
-          // Supabase sync is best-effort; local copy is authoritative.
+      const remote = await pullRemote('projects', (r: any): Project => ({
+        id: r.id,
+        name: r.name,
+        description: r.description,
+        engine: r.engine,
+        isDefault: false,
+        snapshotPath: r.snapshot_path,
+        snapshotAt: r.snapshot_at,
+        createdAt: r.created_at,
+        updatedAt: r.updated_at,
+      }));
+      if (remote && remote.length > 0) {
+        const merged = mergeById([...DEFAULT_PROJECTS, ...userProjects], remote);
+        set({ projects: merged });
+        // Persist merged set locally
+        for (const p of merged.filter(p => !p.isDefault)) {
+          await localPut('projects', p);
         }
       }
     } catch (e) {
@@ -138,23 +123,14 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     await localPut('projects', project);
     set(s => ({ projects: [...s.projects, project] }));
 
-    if (isSupabaseConfigured) {
-      try {
-        const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          await supabase.from('projects').insert({
-            id: project.id,
-            owner_id: user.id,
-            name,
-            description,
-            engine,
-            created_at: now,
-            updated_at: now,
-          });
-        }
-      } catch { /* best-effort */ }
-    }
+    await pushUpsert('projects', {
+      id: project.id,
+      name,
+      description,
+      engine,
+      created_at: now,
+      updated_at: now,
+    });
 
     return project;
   },
@@ -185,12 +161,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
       get().setActiveProject(fallback);
     }
 
-    if (isSupabaseConfigured) {
-      try {
-        const supabase = createClient();
-        await supabase.from('projects').delete().eq('id', id);
-      } catch { /* best-effort */ }
-    }
+    await pushDelete('projects', id);
   },
 
   setActiveProject(id) {
@@ -201,15 +172,3 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     return get().projects.find(p => p.id === get().activeProjectId);
   },
 }));
-
-// ── helpers ──────────────────────────────────────────────────────────────────
-
-function mergeById(local: Project[], remote: Project[]): Project[] {
-  const map = new Map<string, Project>();
-  for (const p of local) map.set(p.id, p);
-  for (const p of remote) {
-    const existing = map.get(p.id);
-    if (!existing || p.updatedAt > existing.updatedAt) map.set(p.id, p);
-  }
-  return Array.from(map.values());
-}

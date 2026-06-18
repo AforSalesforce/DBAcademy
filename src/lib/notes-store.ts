@@ -2,7 +2,7 @@
 
 import { create } from 'zustand';
 import { localGetAll, localPut, localDelete } from './local-db';
-import { createClient, isSupabaseConfigured } from './supabase/client';
+import { mergeById, pullRemote, pushUpsert, pushDelete } from './sync/supabase-sync';
 
 export interface Note {
   id: string;
@@ -47,34 +47,22 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
       const local = await localGetAll<Note>('notes');
       set({ notes: local, hydrated: true });
 
-      if (isSupabaseConfigured) {
-        try {
-          const supabase = createClient();
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user) {
-            const { data } = await supabase
-              .from('notes')
-              .select('*')
-              .eq('owner_id', user.id);
-            if (data) {
-              const remote = data.map((r: any): Note => ({
-                id: r.id,
-                projectId: r.project_id ?? null,
-                lessonId: r.lesson_id ?? null,
-                queryId: r.query_id ?? null,
-                title: r.title ?? '',
-                contentMd: r.content_md ?? '',
-                pinned: r.pinned ?? false,
-                tags: r.tags ?? [],
-                createdAt: r.created_at,
-                updatedAt: r.updated_at,
-              }));
-              const merged = mergeById(local, remote);
-              set({ notes: merged });
-              for (const n of merged) await localPut('notes', n);
-            }
-          }
-        } catch { /* best-effort */ }
+      const remote = await pullRemote('notes', (r: any): Note => ({
+        id: r.id,
+        projectId: r.project_id ?? null,
+        lessonId: r.lesson_id ?? null,
+        queryId: r.query_id ?? null,
+        title: r.title ?? '',
+        contentMd: r.content_md ?? '',
+        pinned: r.pinned ?? false,
+        tags: r.tags ?? [],
+        createdAt: r.created_at,
+        updatedAt: r.updated_at,
+      }));
+      if (remote) {
+        const merged = mergeById(local, remote);
+        set({ notes: merged });
+        for (const n of merged) await localPut('notes', n);
       }
     } catch (e) {
       console.error('notes hydrate error', e);
@@ -105,27 +93,18 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
         : [...s.notes, note],
     }));
 
-    if (isSupabaseConfigured) {
-      try {
-        const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          await supabase.from('notes').upsert({
-            id: note.id,
-            owner_id: user.id,
-            project_id: note.projectId,
-            lesson_id: note.lessonId,
-            query_id: note.queryId,
-            title: note.title,
-            content_md: note.contentMd,
-            pinned: note.pinned,
-            tags: note.tags,
-            created_at: note.createdAt,
-            updated_at: note.updatedAt,
-          });
-        }
-      } catch { /* best-effort */ }
-    }
+    await pushUpsert('notes', {
+      id: note.id,
+      project_id: note.projectId,
+      lesson_id: note.lessonId,
+      query_id: note.queryId,
+      title: note.title,
+      content_md: note.contentMd,
+      pinned: note.pinned,
+      tags: note.tags,
+      created_at: note.createdAt,
+      updated_at: note.updatedAt,
+    });
 
     return note;
   },
@@ -133,12 +112,7 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
   async deleteNote(id) {
     set(s => ({ notes: s.notes.filter(n => n.id !== id) }));
     await localDelete('notes', id);
-    if (isSupabaseConfigured) {
-      try {
-        const supabase = createClient();
-        await supabase.from('notes').delete().eq('id', id);
-      } catch { /* best-effort */ }
-    }
+    await pushDelete('notes', id);
   },
 
   async togglePin(id) {
@@ -175,13 +149,3 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
     }
   },
 }));
-
-function mergeById(local: Note[], remote: Note[]): Note[] {
-  const map = new Map<string, Note>();
-  for (const n of local) map.set(n.id, n);
-  for (const n of remote) {
-    const existing = map.get(n.id);
-    if (!existing || n.updatedAt > existing.updatedAt) map.set(n.id, n);
-  }
-  return Array.from(map.values());
-}
