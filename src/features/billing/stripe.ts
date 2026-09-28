@@ -48,3 +48,32 @@ export function planFromPriceId(priceId: string): PaidPlan | null {
   }
   return null;
 }
+
+/**
+ * Statuses that keep paid access. `past_due` is included as a grace period:
+ * Stripe is still retrying the card, and it moves the subscription to
+ * `canceled`/`unpaid` (which we treat as free) if the retries fail.
+ */
+const PAID_STATUSES = new Set<Stripe.Subscription.Status>(['active', 'trialing', 'past_due']);
+const PLAN_RANK: Record<Plan, number> = { free: 0, pro: 1, institution: 2 };
+
+/**
+ * Derives a customer's plan from the full, current list of their Stripe
+ * subscriptions — the highest plan among subscriptions that still grant
+ * access, or 'free'. Because it looks at current state rather than a single
+ * event, it gives the same answer no matter which order webhooks arrive in
+ * or how many times they're retried.
+ */
+export function planFromSubscriptions(
+  subscriptions: Pick<Stripe.Subscription, 'status' | 'items'>[]
+): Plan {
+  let best: Plan = 'free';
+  for (const sub of subscriptions) {
+    if (!PAID_STATUSES.has(sub.status)) continue;
+    for (const item of sub.items.data) {
+      const plan = planFromPriceId(item.price.id);
+      if (plan && PLAN_RANK[plan] > PLAN_RANK[best]) best = plan;
+    }
+  }
+  return best;
+}

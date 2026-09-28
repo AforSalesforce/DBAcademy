@@ -3,7 +3,8 @@
 import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
+import { signInWithPassword } from '@/features/auth/actions';
+import { safeNextPath } from '@/lib/safe-redirect';
 import { Database, GraduationCap, Eye, EyeOff, ArrowRight } from 'lucide-react';
 
 function SignInContent() {
@@ -12,7 +13,11 @@ function SignInContent() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(
+    searchParams.get('error') === 'confirmation'
+      ? 'That confirmation link is invalid or has expired. Try signing in, or sign up again.'
+      : ''
+  );
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -21,22 +26,16 @@ function SignInContent() {
     setLoading(true);
 
     try {
-      if (!isSupabaseConfigured) {
-        setError('Auth is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to your environment.');
-        return;
-      }
-
-      const supabase = createClient();
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      const { error: signInError } = await signInWithPassword(email, password);
 
       if (signInError) {
-        setError(signInError.message);
+        setError(signInError);
       } else {
-        router.push(searchParams.get('next') || '/dashboard');
+        router.push(safeNextPath(searchParams.get('next')));
         router.refresh();
       }
-    } catch (err: any) {
-      setError(err.message || 'Sign in failed');
+    } catch {
+      setError('Sign in failed. Please try again.');
     } finally {
       setLoading(false);
     }

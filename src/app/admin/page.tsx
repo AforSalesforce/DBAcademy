@@ -2,43 +2,16 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
+import { createInstitution, loadInstitutionDashboard } from '@/features/institutions/actions';
+import type { Institution, MemberRow } from '@/features/institutions/types';
 import { useProfile } from '@/lib/use-profile';
 import { CURRICULUM } from '@/features/learn/curriculum/curriculum';
-import type { UserProgress } from '@/stores/progress-store';
 import {
   Database, Users, BookOpen, BarChart3, Settings, Search, Copy, Check,
   TrendingUp, Award, Building2,
 } from 'lucide-react';
 
 const TOTAL_LESSONS = CURRICULUM.reduce((sum, m) => sum + m.lessons.length, 0);
-
-interface Institution {
-  id: string;
-  name: string;
-  invite_code: string;
-}
-
-interface MemberRow {
-  id: string;
-  name: string | null;
-  email: string | null;
-  lessonsCompleted: number;
-  quizAverage: number | null;
-  streak: number;
-  xp: number;
-  level: number;
-  lastActiveDate: string;
-}
-
-function quizAverageFrom(progress?: UserProgress): number | null {
-  if (!progress?.lessonProgress) return null;
-  const scores = Object.values(progress.lessonProgress)
-    .map(lp => lp.quizScore)
-    .filter((s): s is number => typeof s === 'number');
-  if (scores.length === 0) return null;
-  return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
-}
 
 export default function AdminPage() {
   const { profile, loading: profileLoading } = useProfile();
@@ -53,65 +26,15 @@ export default function AdminPage() {
   const [copied, setCopied] = useState(false);
 
   const loadData = async () => {
-    if (!isSupabaseConfigured) {
+    try {
+      const { institution: inst, members: rows } = await loadInstitutionDashboard();
+      setInstitution(inst);
+      setMembers(rows);
+    } catch {
+      setActionError('Could not load your organization. Try refreshing.');
+    } finally {
       setLoading(false);
-      return;
     }
-    const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      setLoading(false);
-      return;
-    }
-
-    const { data: inst } = await supabase
-      .from('institutions')
-      .select('id, name, invite_code')
-      .eq('owner_id', user.id)
-      .maybeSingle();
-
-    if (!inst) {
-      setLoading(false);
-      return;
-    }
-    setInstitution(inst as Institution);
-
-    const { data: profiles } = await supabase
-      .from('profiles')
-      .select('id, name, email')
-      .eq('institution_id', inst.id);
-
-    const memberIds = (profiles ?? []).map(p => p.id);
-    const { data: progressRows } = memberIds.length
-      ? await supabase
-          .from('user_progress')
-          .select('user_id, progress')
-          .in('user_id', memberIds)
-      : { data: [] };
-
-    const progressByUser = new Map(
-      (progressRows ?? []).map(r => [r.user_id, r.progress as UserProgress])
-    );
-
-    setMembers(
-      (profiles ?? []).map(p => {
-        const prog = progressByUser.get(p.id);
-        return {
-          id: p.id,
-          name: p.name,
-          email: p.email,
-          lessonsCompleted: prog?.lessonsCompleted ?? 0,
-          quizAverage: quizAverageFrom(prog),
-          streak: prog?.streak ?? 0,
-          xp: prog?.xp ?? 0,
-          level: prog?.level ?? 1,
-          lastActiveDate: prog?.lastActiveDate ?? '',
-        };
-      })
-    );
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -124,14 +47,11 @@ export default function AdminPage() {
     setActionError('');
     setCreating(true);
     try {
-      const supabase = createClient();
-      const { error } = await supabase.rpc('create_institution', {
-        institution_name: newOrgName.trim(),
-      });
-      if (error) throw new Error(error.message);
+      const { error } = await createInstitution(newOrgName);
+      if (error) throw new Error(error);
       await loadData();
-    } catch (err: any) {
-      setActionError(err.message);
+    } catch (err: unknown) {
+      setActionError(err instanceof Error ? err.message : 'Could not create organization.');
     } finally {
       setCreating(false);
     }
@@ -174,7 +94,7 @@ export default function AdminPage() {
     );
   }
 
-  if (!isSupabaseConfigured || !profile) {
+  if (!profile) {
     return (
       <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center px-4">
         <div className="text-center max-w-md">

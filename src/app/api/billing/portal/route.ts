@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     }
 
     const origin =
-      process.env.NEXT_PUBLIC_APP_URL ?? new URL(request.url).origin;
+      process.env.APP_URL ?? new URL(request.url).origin;
 
     const session = await getStripe().billingPortal.sessions.create({
       customer: profile.stripe_customer_id,
@@ -35,10 +35,10 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({ url: session.url });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Portal error:', err);
     return NextResponse.json(
-      { error: err.message ?? 'Could not open billing portal' },
+      { error: 'Could not open billing portal. Please try again.' },
       { status: 500 }
     );
   }

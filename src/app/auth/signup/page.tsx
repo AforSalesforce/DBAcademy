@@ -3,12 +3,15 @@
 import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
+import { signUpWithPassword } from '@/features/auth/actions';
 import { Database, GraduationCap, Eye, EyeOff, CheckCircle, ArrowRight, BookOpen, Users } from 'lucide-react';
 
 function SignUpContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  // Display-only: which plan the visitor clicked on the pricing page. It is
+  // never sent to the server — every account starts on Free, and only the
+  // Stripe webhook can upgrade it.
   const plan = searchParams.get('plan') || 'free';
 
   const [name, setName] = useState('');
@@ -36,32 +39,23 @@ function SignUpContent() {
         return;
       }
 
-      if (!isSupabaseConfigured) {
-        setError('Auth is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to your environment.');
+      const result = await signUpWithPassword({ name, email, password, role });
+
+      if (result.error) {
+        setError(result.error);
         return;
       }
 
-      const supabase = createClient();
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { data: { name, role, plan } },
-      });
-
-      if (signUpError) {
-        setError(signUpError.message);
-        return;
-      }
-
-      if (!data.session) {
+      if (result.needsConfirmation) {
         setError('Check your email to confirm your account, then sign in.');
         return;
       }
 
-      router.push('/dashboard');
+      // Paid-plan signups still need to go through checkout.
+      router.push(plan === 'pro' || plan === 'institution' ? '/pricing' : '/dashboard');
       router.refresh();
-    } catch (err: any) {
-      setError(err.message || 'Registration failed');
+    } catch {
+      setError('Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }

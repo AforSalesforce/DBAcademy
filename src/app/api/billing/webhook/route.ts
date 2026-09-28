@@ -1,10 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type Stripe from 'stripe';
-import { getStripe, planFromPriceId } from '@/features/billing/stripe';
+import { getStripe, planFromSubscriptions } from '@/features/billing/stripe';
 import { createAdminClient } from '@/lib/supabase/admin';
+
+const SUBSCRIPTION_EVENTS = new Set([
+  'customer.subscription.created',
+  'customer.subscription.updated',
+  'customer.subscription.deleted',
+]);
 
 /**
  * Stripe webhook — the single source of truth for `profiles.plan`.
+ *
+ * Every subscription event triggers a re-read of the customer's current
+ * subscriptions from Stripe, so handling is idempotent and immune to
+ * out-of-order delivery. Any failure returns 500 so Stripe retries (it keeps
+ * retrying for up to 3 days) instead of silently dropping a paid upgrade.
  *
  * Local dev: stripe listen --forward-to localhost:3000/api/billing/webhook
  */
@@ -22,50 +33,62 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Missing signature' }, { status: 400 });
   }
 
+  const stripe = getStripe();
   let event: Stripe.Event;
   try {
     const body = await request.text();
-    event = getStripe().webhooks.constructEvent(body, signature, secret);
-  } catch (err: any) {
-    console.error('Webhook signature verification failed:', err.message);
+    event = stripe.webhooks.constructEvent(body, signature, secret);
+  } catch (err: unknown) {
+    console.error('Webhook signature verification failed:', err instanceof Error ? err.message : err);
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
   }
 
-  const admin = createAdminClient();
+  // Unhandled event types are fine — acknowledge them.
+  if (!SUBSCRIPTION_EVENTS.has(event.type)) {
+    return NextResponse.json({ received: true });
+  }
 
-  const setPlanByCustomer = async (customerId: string, plan: string) => {
-    const { error } = await admin
+  const sub = event.data.object as Stripe.Subscription;
+  const customerId = typeof sub.customer === 'string' ? sub.customer : sub.customer.id;
+
+  try {
+    const { data: subscriptions } = await stripe.subscriptions.list({
+      customer: customerId,
+      status: 'all',
+      limit: 100,
+    });
+    const plan = planFromSubscriptions(subscriptions);
+    const admin = createAdminClient();
+
+    const byCustomer = await admin
       .from('profiles')
       .update({ plan })
-      .eq('stripe_customer_id', customerId);
-    if (error) console.error('Failed to update plan:', error.message);
-  };
+      .eq('stripe_customer_id', customerId)
+      .select('id');
+    if (byCustomer.error) throw byCustomer.error;
 
-  switch (event.type) {
-    case 'customer.subscription.created':
-    case 'customer.subscription.updated': {
-      const sub = event.data.object as Stripe.Subscription;
-      const customerId = sub.customer as string;
-      const priceId = sub.items.data[0]?.price.id;
-      const plan = priceId ? planFromPriceId(priceId) : null;
-
-      if (['active', 'trialing'].includes(sub.status) && plan) {
-        await setPlanByCustomer(customerId, plan);
-      } else if (['canceled', 'unpaid', 'incomplete_expired'].includes(sub.status)) {
-        await setPlanByCustomer(customerId, 'free');
+    if (byCustomer.data.length === 0) {
+      // No profile linked to this customer yet — e.g. checkout created the
+      // customer but its profile write failed. Checkout stamps user_id on the
+      // subscription, so use that to repair the link.
+      const userId = sub.metadata?.user_id;
+      if (!userId) {
+        console.error(`Webhook ${event.id}: no profile for customer ${customerId} and no user_id metadata`);
+        return NextResponse.json({ received: true });
       }
-      break;
+      const byUser = await admin
+        .from('profiles')
+        .update({ plan, stripe_customer_id: customerId })
+        .eq('id', userId)
+        .select('id');
+      if (byUser.error) throw byUser.error;
+      if (byUser.data.length === 0) {
+        console.error(`Webhook ${event.id}: no profile for user ${userId}`);
+      }
     }
-
-    case 'customer.subscription.deleted': {
-      const sub = event.data.object as Stripe.Subscription;
-      await setPlanByCustomer(sub.customer as string, 'free');
-      break;
-    }
-
-    default:
-      // Unhandled event types are fine — acknowledge them.
-      break;
+  } catch (err: unknown) {
+    console.error(`Webhook ${event.id} (${event.type}) failed:`, err instanceof Error ? err.message : err);
+    return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });
   }
 
   return NextResponse.json({ received: true });
