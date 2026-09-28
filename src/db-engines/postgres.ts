@@ -18,17 +18,27 @@ export class PostgresEngine implements DatabaseEngine {
         this.db = this.idbPath ? new PGlite(this.idbPath) : new PGlite();
         await this.db.waitReady;
 
-        await this.db.exec(`
-      CREATE TABLE IF NOT EXISTS crime_scene_report (
+        // With an idbPath the database persists across reloads, so seed rows
+        // only on first creation — re-seeding on every init would wipe the
+        // user's edits to this table.
+        const existing = await this.db.query<{ t: string | null }>(
+            `SELECT to_regclass('public.crime_scene_report')::text AS t`
+        );
+        if (!existing.rows[0]?.t) {
+            await this.db.exec(`
+      CREATE TABLE crime_scene_report (
         date integer,
         type text,
         description text,
         city text
       );
-      DELETE FROM crime_scene_report;
       INSERT INTO crime_scene_report VALUES (20180115, 'murder', 'Security footage shows a man walking oddly.', 'SQL City');
       INSERT INTO crime_scene_report VALUES (20180115, 'theft', 'A donut was stolen.', 'SQL City');
       INSERT INTO crime_scene_report VALUES (20180215, 'murder', 'Another one.', 'New York');
+    `);
+        }
+
+        await this.db.exec(`
 
       CREATE TABLE IF NOT EXISTS drivers_license (
         id integer PRIMARY KEY,

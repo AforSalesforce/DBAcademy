@@ -7,7 +7,8 @@ import { useProgressStore } from '@/stores/progress-store';
 import { CURRICULUM } from '@/features/learn/curriculum/curriculum';
 import { useProfile } from '@/lib/use-profile';
 import { SiteFooter } from '@/components/SiteFooter';
-import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
+import { signOut } from '@/features/auth/actions';
+import { joinInstitution } from '@/features/institutions/actions';
 import {
   Database, GraduationCap, Trophy, Zap, Flame, Target,
   BookOpen, ArrowRight, Star, LogOut, Play, CheckCircle, X,
@@ -39,8 +40,7 @@ function DashboardContent() {
   }, [billingStatus]);
 
   const handleSignOut = async () => {
-    if (!isSupabaseConfigured) return;
-    await createClient().auth.signOut();
+    await signOut();
     router.push('/');
     router.refresh();
   };
@@ -72,12 +72,12 @@ function DashboardContent() {
     setJoinStatus({});
     setJoining(true);
     try {
-      const { data, error } = await createClient().rpc('join_institution', { code: inviteCode });
-      if (error) throw new Error(error.message);
-      setJoinStatus({ ok: `Joined ${data?.name ?? 'institution'}!` });
+      const { name, error } = await joinInstitution(inviteCode);
+      if (error) throw new Error(error);
+      setJoinStatus({ ok: `Joined ${name ?? 'institution'}!` });
       setInviteCode('');
-    } catch (err: any) {
-      setJoinStatus({ error: err.message });
+    } catch (err: unknown) {
+      setJoinStatus({ error: err instanceof Error ? err.message : 'Could not join institution.' });
     } finally {
       setJoining(false);
     }

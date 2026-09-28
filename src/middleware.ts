@@ -1,21 +1,21 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { getSupabaseConfig, hardenCookie } from '@/lib/supabase/config';
 
 const PROTECTED_PREFIXES = ['/dashboard', '/admin'];
 
 export async function middleware(request: NextRequest) {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabaseConfig = getSupabaseConfig();
 
   // Supabase not configured yet — let everything through so the app
   // still works in local/demo mode.
-  if (!url || !anonKey) {
+  if (!supabaseConfig) {
     return NextResponse.next();
   }
 
   let response = NextResponse.next({ request });
 
-  const supabase = createServerClient(url, anonKey, {
+  const supabase = createServerClient(supabaseConfig.url, supabaseConfig.anonKey, {
     cookies: {
       getAll() {
         return request.cookies.getAll();
@@ -26,7 +26,7 @@ export async function middleware(request: NextRequest) {
         );
         response = NextResponse.next({ request });
         cookiesToSet.forEach(({ name, value, options }) =>
-          response.cookies.set(name, value, options)
+          response.cookies.set(name, value, hardenCookie(options))
         );
       },
     },
