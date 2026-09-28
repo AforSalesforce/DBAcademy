@@ -147,7 +147,7 @@ const Sidebar: React.FC<SidebarProps> = ({ modules, activeLessonId, onAddModule,
                                             ) : (
                                                 <Circle size={16} className={cn("text-slate-400 shrink-0", isActive && "text-blue-500")} />
                                             )}
-                                            <span className="truncate flex-1">{lesson.title}</span>
+                                            <span className="truncate flex-1" title={lesson.title}>{lesson.title}</span>
                                             {onRemoveLesson && (
                                                 <button
                                                     onClick={(e) => {

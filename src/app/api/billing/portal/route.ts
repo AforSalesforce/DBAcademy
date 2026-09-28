@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { accountsEnabled } from '@/lib/features';
 import { createClient } from '@/lib/supabase/server';
 import { getStripe } from '@/features/billing/stripe';
 
 export async function POST(request: NextRequest) {
+  // Payments are part of the accounts feature; while it's off they don't exist.
+  if (!accountsEnabled()) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+
   try {
     const supabase = await createClient();
     const {

@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { accountsEnabled } from '@/lib/features';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getStripe, getPriceId, type BillingInterval, type PaidPlan } from '@/features/billing/stripe';
 
 export async function POST(request: NextRequest) {
+  // Payments are part of the accounts feature; while it's off they don't exist.
+  if (!accountsEnabled()) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+
   try {
     const supabase = await createClient();
     const {

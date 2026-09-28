@@ -20,6 +20,7 @@ import { PYTHON_CURRICULUM,   getPythonLessonById }   from '@/features/code-play
 import { COMPILED_CURRICULUM, getCompiledLessonById } from '@/features/code-playground/curriculum/compiled-curriculum';
 import { useProgressStore } from '@/stores/progress-store';
 import { useCodeHistoryStore } from '@/stores/code-history-store';
+import { useFeatures } from '@/components/FeaturesProvider';
 import type { ModuleType } from '@/features/learn/curriculum/curriculum';
 
 // ── Language configuration ────────────────────────────────────────────────────
@@ -125,6 +126,10 @@ function createEngine(lang: LangId): CodeEngine {
 export default function CodePage() {
   const [language, setLanguage] = useState<LangId>('javascript');
   const activeLang = LANGUAGES.find(l => l.id === language)!;
+  // Server-run languages need an account (it caps their cost), so they're
+  // only offered when accounts are switched on.
+  const { accounts } = useFeatures();
+  const availableLanguages = accounts ? LANGUAGES : LANGUAGES.filter(l => l.clientSide);
 
   const [code, setCode]     = useState(DEFAULT_CODE.javascript);
   const [output, setOutput] = useState<CodeResult | null>(null);
@@ -370,7 +375,7 @@ export default function CodePage() {
           {/* Language selector */}
           <div className="hidden md:flex items-center gap-0.5 p-0.5 rounded-lg"
             style={{ background: '#111724', border: '1px solid rgba(255,255,255,0.06)' }}>
-            {LANGUAGES.map(lang => (
+            {availableLanguages.map(lang => (
               <button
                 key={lang.id}
                 onClick={() => setLanguage(lang.id)}
@@ -532,7 +537,7 @@ export default function CodePage() {
                 <p className="text-sm" style={{ color: '#5C6B8A' }}>
                   {activeLang.clientSide
                     ? 'Runs entirely in your browser — no server needed.'
-                    : 'Runs on the server via a sandboxed executor (Piston).'}
+                    : 'Runs on the server in a sandboxed executor.'}
                 </p>
                 <p className="text-sm mt-2" style={{ color: '#5C6B8A' }}>
                   Select a lesson from the curriculum or write your own code.

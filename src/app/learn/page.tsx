@@ -21,6 +21,7 @@ import {
 import { EngineType } from '@/db-engines/types';
 import { CURRICULUM, getLessonById, LessonContentType } from '@/features/learn/curriculum/curriculum';
 import { useProfile } from '@/lib/use-profile';
+import { useFeatures } from '@/components/FeaturesProvider';
 import { canCreateCustomModule, canCreateProject, canSaveQuery } from '@/features/billing/plans';
 import { useProjectStore, DEFAULT_PROJECT_IDS, Project } from '@/stores/project-store';
 import { useSavedQueriesStore } from '@/stores/saved-queries-store';
@@ -94,6 +95,9 @@ export default function LearnPage() {
   // ── Stores ─────────────────────────────────────────────────────────────────
   const { updateStreak } = useProgressStore();
   const { profile } = useProfile();
+  // Plan limits only exist alongside paid plans. With accounts/payments off,
+  // everything is local to the browser, so there's nothing to meter or upgrade.
+  const { accounts } = useFeatures();
   const savedQueriesStore = useSavedQueriesStore();
   const runHistoryStore = useRunHistoryStore();
   const notesStore = useNotesStore();
@@ -228,7 +232,7 @@ export default function LearnPage() {
   const commitSaveQuery = async () => {
     if (!saveQueryModal || !saveQueryTitle.trim()) return;
     const plan = profile?.plan ?? 'free';
-    if (!canSaveQuery(plan, savedQueriesStore.queries.length)) {
+    if (accounts && !canSaveQuery(plan, savedQueriesStore.queries.length)) {
       workspace.setError('Saved query limit reached. Upgrade to Pro for unlimited saved queries.');
       setSaveQueryModal(null);
       return;
@@ -253,7 +257,7 @@ export default function LearnPage() {
   const handleCreateProject = async () => {
     const plan = profile?.plan ?? 'free';
     const userCount = projectStore.projects.filter(p => !p.isDefault).length;
-    if (!canCreateProject(plan, userCount)) {
+    if (accounts && !canCreateProject(plan, userCount)) {
       workspace.setError('Project limit reached on the Free plan (2 projects). Upgrade to Pro for unlimited projects.');
       return;
     }
@@ -280,7 +284,7 @@ export default function LearnPage() {
 
   const handleAddModule = (title: string) => {
     const customModuleCount = modules.filter(m => !CURRICULUM.some(c => c.id === m.id)).length;
-    if (!canCreateCustomModule(profile?.plan ?? 'free', customModuleCount)) {
+    if (accounts && !canCreateCustomModule(profile?.plan ?? 'free', customModuleCount)) {
       workspace.setError('Custom module limit reached. Upgrade to Pro for unlimited modules — see /pricing.');
       return;
     }

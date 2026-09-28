@@ -1,7 +1,11 @@
+'use client';
+
 import Link from 'next/link';
 import { Database, GraduationCap } from 'lucide-react';
+import { useFeatures } from '@/components/FeaturesProvider';
 
 export function SiteFooter() {
+  const { accounts } = useFeatures();
   return (
     <footer className="relative z-10 py-10" style={{ borderTop: '1px solid rgba(255,255,255,0.05)', background: '#07090F' }}>
       <div className="max-w-6xl mx-auto px-6 sm:px-10">
@@ -24,9 +28,9 @@ export function SiteFooter() {
           <nav className="flex items-center gap-6 text-sm" style={{ color: '#2E3A52' }}>
             <Link href="/" className="hover:text-[#EDF1FA] transition-colors cursor-pointer">Home</Link>
             <Link href="/learn" className="hover:text-[#EDF1FA] transition-colors cursor-pointer">App</Link>
-            <Link href="/pricing" className="hover:text-[#EDF1FA] transition-colors cursor-pointer">Pricing</Link>
+            {accounts && <Link href="/pricing" className="hover:text-[#EDF1FA] transition-colors cursor-pointer">Pricing</Link>}
             <Link href="/dashboard" className="hover:text-[#EDF1FA] transition-colors cursor-pointer">Dashboard</Link>
-            <Link href="/auth/signin" className="hover:text-[#EDF1FA] transition-colors cursor-pointer">Sign In</Link>
+            {accounts && <Link href="/auth/signin" className="hover:text-[#EDF1FA] transition-colors cursor-pointer">Sign In</Link>}
           </nav>
 
           {/* Copy */}

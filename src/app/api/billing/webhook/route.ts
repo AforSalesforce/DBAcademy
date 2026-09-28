@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { accountsEnabled } from '@/lib/features';
 import type Stripe from 'stripe';
 import { getStripe, planFromSubscriptions } from '@/features/billing/stripe';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -20,6 +21,11 @@ const SUBSCRIPTION_EVENTS = new Set([
  * Local dev: stripe listen --forward-to localhost:3000/api/billing/webhook
  */
 export async function POST(request: NextRequest) {
+  // Payments are part of the accounts feature; while it's off they don't exist.
+  if (!accountsEnabled()) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!secret) {
     return NextResponse.json(

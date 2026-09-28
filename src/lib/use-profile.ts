@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import type { Plan } from '@/features/billing/plans';
+import { useFeatures } from '@/components/FeaturesProvider';
 
 export interface Profile {
   id: string;
@@ -19,9 +20,11 @@ export interface Profile {
  */
 export function useProfile() {
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { accounts } = useFeatures();
+  const [loading, setLoading] = useState(accounts);
 
   useEffect(() => {
+    if (!accounts) return; // no accounts → nobody can be signed in
     let cancelled = false;
 
     (async () => {
@@ -39,7 +42,7 @@ export function useProfile() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [accounts]);
 
   return { profile, loading };
 }

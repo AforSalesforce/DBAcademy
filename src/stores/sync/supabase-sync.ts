@@ -17,6 +17,17 @@ export function mergeById<T extends Syncable>(local: T[], remote: T[]): T[] {
 }
 
 /**
+ * Off until <FeaturesProvider> turns it on (accounts enabled). While off, the
+ * helpers below return immediately instead of making requests that would
+ * only be refused.
+ */
+let remoteSyncEnabled = false;
+
+export function setRemoteSyncEnabled(enabled: boolean): void {
+  remoteSyncEnabled = enabled;
+}
+
+/**
  * Best-effort pull of the signed-in user's rows, via this app's own
  * /api/sync route (the browser never talks to Supabase directly).
  * Returns null when the user is signed out, Supabase isn't configured, or the
@@ -27,6 +38,7 @@ export async function pullRemote<T>(
   table: string,
   mapRow: (row: Record<string, unknown>) => T
 ): Promise<T[] | null> {
+  if (!remoteSyncEnabled) return null;
   try {
     const res = await fetch(`/api/sync/${table}`, { cache: 'no-store' });
     if (!res.ok) return null;
@@ -39,6 +51,7 @@ export async function pullRemote<T>(
 
 /** Best-effort upsert, scoped server-side to the signed-in user. Failures are swallowed. */
 export async function pushUpsert(table: string, row: Record<string, unknown>): Promise<void> {
+  if (!remoteSyncEnabled) return;
   try {
     await fetch(`/api/sync/${table}`, {
       method: 'PUT',
@@ -50,6 +63,7 @@ export async function pushUpsert(table: string, row: Record<string, unknown>): P
 
 /** Best-effort delete, scoped server-side to the signed-in user. Failures are swallowed. */
 export async function pushDelete(table: string, id: string): Promise<void> {
+  if (!remoteSyncEnabled) return;
   try {
     await fetch(`/api/sync/${table}?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
   } catch { /* best-effort */ }

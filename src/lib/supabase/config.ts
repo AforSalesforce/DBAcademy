@@ -1,4 +1,5 @@
 import type { CookieOptions } from '@supabase/ssr';
+import { accountsEnabled } from '@/lib/features';
 
 /**
  * Supabase connection settings. Deliberately NOT prefixed with NEXT_PUBLIC_,
@@ -6,6 +7,9 @@ import type { CookieOptions } from '@supabase/ssr';
  * talks to this app's own routes, and those talk to Supabase.
  */
 export function getSupabaseConfig(): { url: string; anonKey: string } | null {
+  // With accounts switched off, every Supabase code path behaves as if it
+  // were never configured — one gate instead of a check at each call site.
+  if (!accountsEnabled()) return null;
   const url = process.env.SUPABASE_URL;
   const anonKey = process.env.SUPABASE_ANON_KEY;
   return url && anonKey ? { url, anonKey } : null;

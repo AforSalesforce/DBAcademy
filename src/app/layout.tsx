@@ -45,10 +45,13 @@ export const metadata: Metadata = {
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ProgressSync } from "@/components/ProgressSync";
+import { FeaturesProvider } from "@/components/FeaturesProvider";
+import { accountsEnabled } from "@/lib/features";
 
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const features = { accounts: accountsEnabled() };
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${display.variable} ${body.variable} ${body.className}`}>
@@ -58,10 +61,12 @@ export default function RootLayout({
           forcedTheme="dark"
           disableTransitionOnChange
         >
-          <ErrorBoundary>
-            <ProgressSync />
-            {children}
-          </ErrorBoundary>
+          <FeaturesProvider features={features}>
+            <ErrorBoundary>
+              {features.accounts && <ProgressSync />}
+              {children}
+            </ErrorBoundary>
+          </FeaturesProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -1,10 +1,25 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { getSupabaseConfig, hardenCookie } from '@/lib/supabase/config';
+import { accountsEnabled } from '@/lib/features';
 
 const PROTECTED_PREFIXES = ['/dashboard', '/admin'];
 
+/** Pages that only make sense with accounts/payments; hidden while those are off. */
+const ACCOUNT_ONLY_PREFIXES = ['/auth', '/pricing', '/admin'];
+
 export async function middleware(request: NextRequest) {
+  if (!accountsEnabled()) {
+    const path = request.nextUrl.pathname;
+    if (ACCOUNT_ONLY_PREFIXES.some(p => path === p || path.startsWith(`${p}/`))) {
+      const home = request.nextUrl.clone();
+      home.pathname = '/';
+      home.search = '';
+      return NextResponse.redirect(home);
+    }
+    return NextResponse.next();
+  }
+
   const supabaseConfig = getSupabaseConfig();
 
   // Supabase not configured yet — let everything through so the app
@@ -58,5 +73,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/admin/:path*', '/auth/:path*'],
+  matcher: ['/dashboard/:path*', '/admin/:path*', '/auth/:path*', '/pricing/:path*'],
 };

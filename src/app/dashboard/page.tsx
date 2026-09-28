@@ -9,6 +9,7 @@ import { useProfile } from '@/lib/use-profile';
 import { SiteFooter } from '@/components/SiteFooter';
 import { signOut } from '@/features/auth/actions';
 import { joinInstitution } from '@/features/institutions/actions';
+import { useFeatures } from '@/components/FeaturesProvider';
 import {
   Database, GraduationCap, Trophy, Zap, Flame, Target,
   BookOpen, ArrowRight, Star, LogOut, Play, CheckCircle, X,
@@ -21,10 +22,11 @@ function DashboardContent() {
   const searchParams = useSearchParams();
   const { progress, updateStreak } = useProgressStore();
   const { profile } = useProfile();
+  const { accounts } = useFeatures();
 
   const [billingLoading, setBillingLoading] = useState(false);
   const [billingError, setBillingError] = useState('');
-  const billingStatus = searchParams.get('billing');
+  const billingStatus = accounts ? searchParams.get('billing') : null;
 
   useEffect(() => {
     updateStreak();
@@ -121,7 +123,7 @@ function DashboardContent() {
                   </span>
                 </span>
               )}
-              {profile?.plan !== 'free' && (
+              {accounts && profile && profile.plan !== 'free' && (
                 <button
                   onClick={handleManageBilling}
                   disabled={billingLoading}

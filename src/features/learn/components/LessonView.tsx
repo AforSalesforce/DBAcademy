@@ -1,9 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { BookOpen, AlertCircle, X, StickyNote, CheckCircle } from 'lucide-react';
 import { Quiz, QuizQuestion } from './Quiz';
 import { useProgressStore } from '@/stores/progress-store';
+import { useNotesStore, latestLessonNote } from '@/stores/notes-store';
+
+const NOTE_SAVE_DEBOUNCE_MS = 500;
+
+type NoteSaveState = 'idle' | 'saving' | 'saved' | 'error';
 
 interface LessonViewProps {
     id: string;
@@ -19,22 +24,44 @@ interface LessonViewProps {
 
 export const LessonView: React.FC<LessonViewProps> = ({ id, title, content, defaultQuery, quiz, moduleId, onRunSample, onClose, onEdit }) => {
     const [note, setNote] = useState('');
-    const [isClient, setIsClient] = useState(false);
+    const [notesReady, setNotesReady] = useState(false);
+    const [noteSaveState, setNoteSaveState] = useState<NoteSaveState>('idle');
+    const pendingNote = useRef<string | null>(null);
+    const noteSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [isEditing, setIsEditing] = useState(false);
     const [editedContent, setEditedContent] = useState(content);
     const [showQuiz, setShowQuiz] = useState(false);
     const [quizCompleted, setQuizCompleted] = useState(false);
     const { markLessonComplete, recordQuizScore } = useProgressStore();
 
+    // Lesson notes live in the notes store (IndexedDB, synced when signed in) —
+    // the same place the notes drawer reads. Wait for it to load, including
+    // the one-time move of old localStorage notes, before showing the box.
     useEffect(() => {
-        setIsClient(true);
-        const savedNote = localStorage.getItem(`lesson_note_${id}`);
-        if (savedNote) {
-            setNote(savedNote);
-        } else {
-            setNote('');
-        }
-    }, [id]);
+        let cancelled = false;
+        useNotesStore.getState().migrateFromLocalStorage().finally(() => {
+            if (!cancelled) setNotesReady(true);
+        });
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    useEffect(() => {
+        if (!notesReady) return;
+        setNote(latestLessonNote(useNotesStore.getState().notes, id)?.contentMd ?? '');
+        setNoteSaveState('idle');
+    }, [id, notesReady]);
+
+    // Switching lessons or closing the panel: save anything still pending.
+    useEffect(() => {
+        return () => {
+            if (noteSaveTimer.current) clearTimeout(noteSaveTimer.current);
+            const pending = pendingNote.current;
+            pendingNote.current = null;
+            if (pending !== null) void useNotesStore.getState().saveLessonNote(id, pending, title);
+        };
+    }, [id, title]);
 
     useEffect(() => {
         setEditedContent(content);
@@ -43,7 +70,22 @@ export const LessonView: React.FC<LessonViewProps> = ({ id, title, content, defa
     const handleNoteChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         const newValue = e.target.value;
         setNote(newValue);
-        localStorage.setItem(`lesson_note_${id}`, newValue);
+        pendingNote.current = newValue;
+        setNoteSaveState('saving');
+        if (noteSaveTimer.current) clearTimeout(noteSaveTimer.current);
+        noteSaveTimer.current = setTimeout(async () => {
+            const content = pendingNote.current;
+            pendingNote.current = null;
+            if (content === null) return;
+            try {
+                await useNotesStore.getState().saveLessonNote(id, content, title);
+                setNoteSaveState('saved');
+            } catch {
+                // Keep the text queued so the next keystroke (or leaving the lesson) retries it.
+                pendingNote.current ??= content;
+                setNoteSaveState('error');
+            }
+        }, NOTE_SAVE_DEBOUNCE_MS);
     };
 
     const handleSave = () => {
@@ -117,7 +159,7 @@ export const LessonView: React.FC<LessonViewProps> = ({ id, title, content, defa
                             Try it out
                         </h3>
                         <p className="text-sm text-blue-700 dark:text-blue-300 mb-3">
-                            Copy this query to the editor or click "Run" to see it in action.
+                            Copy this query to the editor or click &ldquo;Run&rdquo; to see it in action.
                         </p>
                         <div className="relative group">
                             <pre className="bg-slate-800 text-slate-100 p-3 rounded-md text-sm overflow-x-auto font-mono">
@@ -193,22 +235,30 @@ export const LessonView: React.FC<LessonViewProps> = ({ id, title, content, defa
 
                 {/* Notes Section */}
                 <div className="pt-6 border-t border-slate-200 dark:border-slate-800">
-                    <h3 className="flex items-center gap-2 font-bold text-slate-700 dark:text-slate-300 mb-3">
-                        <StickyNote size={18} />
+                    <h3 id={`lesson-notes-${id}`} className="flex items-center gap-2 font-bold text-slate-700 dark:text-slate-300 mb-3">
+                        <StickyNote size={18} aria-hidden="true" />
                         My Notes
                     </h3>
-                    {isClient ? (
+                    {notesReady ? (
                         <textarea
                             value={note}
                             onChange={handleNoteChange}
-                            placeholder="Type your notes here... (Auto-saved)"
-                            className="w-full h-32 p-3 text-sm bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none transition-all shadow-sm"
+                            aria-labelledby={`lesson-notes-${id}`}
+                            placeholder="Type your notes here… they save as you type."
+                            className="w-full h-32 p-3 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-y transition-all shadow-sm"
                         />
                     ) : (
-                        <div className="w-full h-32 bg-slate-100 dark:bg-slate-800 rounded-md animate-pulse"></div>
+                        <div className="w-full h-32 bg-slate-100 dark:bg-slate-800 rounded-md animate-pulse" aria-hidden="true"></div>
                     )}
-                    <p className="text-xs text-slate-400 mt-2 text-right italic">
-                        Notes are saved locally in your browser.
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 text-right" aria-live="polite">
+                        {noteSaveState === 'saving' && 'Saving…'}
+                        {noteSaveState === 'saved' && 'Saved in this browser.'}
+                        {noteSaveState === 'error' && (
+                            <span className="text-red-600 dark:text-red-400">
+                                Couldn&apos;t save. Your text is still here; keep typing to retry.
+                            </span>
+                        )}
+                        {noteSaveState === 'idle' && 'Notes save automatically in this browser.'}
                     </p>
                 </div>
             </div>

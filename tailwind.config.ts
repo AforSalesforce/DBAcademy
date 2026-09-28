@@ -2,10 +2,11 @@ import type { Config } from "tailwindcss";
 
 const config: Config = {
     darkMode: 'class',
+    // Every folder that can contain className strings. Missing one here fails
+    // silently: its classes are simply never generated (this is what broke the
+    // lesson panel and sidebar after the move to src/features/).
     content: [
-        "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
-        "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
-        "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+        "./src/**/*.{js,ts,jsx,tsx,mdx}",
     ],
     theme: {
         extend: {

@@ -86,6 +86,7 @@ describe('POST /api/code/execute', () => {
 
   describe('with Supabase configured', () => {
     beforeEach(() => {
+      vi.stubEnv('ACCOUNTS_ENABLED', 'true');
       vi.stubEnv('SUPABASE_URL', 'https://x.supabase.co');
       vi.stubEnv('SUPABASE_ANON_KEY', 'anon');
     });
@@ -147,6 +148,17 @@ describe('POST /api/code/execute', () => {
       expect(res.status).toBe(502);
       expect(JSON.stringify(await res.json())).not.toContain('abc123');
     });
+  });
+
+  it('stays closed when Supabase is configured but accounts are switched off', async () => {
+    vi.stubEnv('SUPABASE_URL', 'https://x.supabase.co');
+    vi.stubEnv('SUPABASE_ANON_KEY', 'anon');
+    vi.stubEnv('ACCOUNTS_ENABLED', 'false');
+    const { POST } = await loadRoute();
+    const res = await POST(request(validBody));
+    expect(res.status).toBe(503);
+    expect(supabaseMock.auth.getUser).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('no longer exposes a GET endpoint describing the backend', async () => {

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { accountsEnabled } from '@/lib/features';
 import {
   Database, GraduationCap, Zap, BookOpen, BarChart3, Code2,
   ShieldCheck, Globe, ArrowRight, Play, Terminal, Table, GitBranch,
@@ -57,7 +58,9 @@ const FEATURES = [
     bg: 'rgba(245, 158, 11, 0.08)',
     border: 'rgba(245, 158, 11, 0.18)',
     title: 'Code Playground',
-    description: 'Write and run JavaScript & Python directly in the browser. Switch to Java, C, Go and more with one click.',
+    description: 'Write and run JavaScript & Python directly in the browser.',
+    /** Only true when server-side execution (an accounts feature) is on. */
+    accountsNote: ' Switch to Java, C, Go and more with one click.',
     rotate: '',
     href: '/code',
   },
@@ -76,6 +79,7 @@ const MARQUEE_ITEMS = [
 ];
 
 export default function HomePage() {
+  const accounts = accountsEnabled();
   return (
     <main className="min-h-screen overflow-x-hidden" style={{ background: '#07090F', color: '#EDF1FA' }}>
       {/* Grid overlay */}
@@ -96,12 +100,16 @@ export default function HomePage() {
           <span className="text-base font-bold tracking-tight font-display">DBAcademy</span>
         </div>
         <div className="flex items-center gap-3">
-          <Link href="/auth/signin" className="text-sm transition-colors px-3 py-1.5 rounded-lg cursor-pointer hover:bg-white/5" style={{ color: '#5C6B8A' }}>
-            Sign In
-          </Link>
-          <Link href="/pricing" className="hidden sm:block text-sm transition-colors px-3 py-1.5 rounded-lg cursor-pointer hover:bg-white/5" style={{ color: '#5C6B8A' }}>
-            Pricing
-          </Link>
+          {accounts && (
+            <>
+              <Link href="/auth/signin" className="text-sm transition-colors px-3 py-1.5 rounded-lg cursor-pointer hover:bg-white/5" style={{ color: '#5C6B8A' }}>
+                Sign In
+              </Link>
+              <Link href="/pricing" className="hidden sm:block text-sm transition-colors px-3 py-1.5 rounded-lg cursor-pointer hover:bg-white/5" style={{ color: '#5C6B8A' }}>
+                Pricing
+              </Link>
+            </>
+          )}
           <Link href="/code"
             className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all cursor-pointer"
             style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)', color: '#F59E0B' }}>
@@ -320,7 +328,9 @@ export default function HomePage() {
                   {f.title}
                   {'href' in f && <ArrowRight className="w-3.5 h-3.5 opacity-50" />}
                 </h3>
-                <p className="text-sm leading-relaxed" style={{ color: '#5C6B8A' }}>{f.description}</p>
+                <p className="text-sm leading-relaxed" style={{ color: '#5C6B8A' }}>
+                  {f.description}{accounts && 'accountsNote' in f ? f.accountsNote : ''}
+                </p>
               </>
             );
             return 'href' in f ? (
@@ -364,13 +374,15 @@ export default function HomePage() {
               <Play className="w-4 h-4" />
               Start Learning Free
             </Link>
-            <Link
-              href="/pricing"
-              className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl font-semibold text-base transition-all cursor-pointer"
-              style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: '#EDF1FA' }}
-            >
-              View Pricing <ArrowRight className="w-4 h-4" />
-            </Link>
+            {accounts && (
+              <Link
+                href="/pricing"
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl font-semibold text-base transition-all cursor-pointer"
+                style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: '#EDF1FA' }}
+              >
+                View Pricing <ArrowRight className="w-4 h-4" />
+              </Link>
+            )}
           </div>
         </div>
       </section>
@@ -382,8 +394,12 @@ export default function HomePage() {
           <span className="font-semibold font-display" style={{ color: '#2E3A52' }}>DBAcademy</span>
         </div>
         <div className="flex items-center justify-center gap-5">
-          <Link href="/pricing" className="transition-colors cursor-pointer" style={{ color: '#2E3A52' }}>Pricing</Link>
-          <Link href="/auth/signin" className="transition-colors cursor-pointer" style={{ color: '#2E3A52' }}>Sign In</Link>
+          {accounts && (
+            <>
+              <Link href="/pricing" className="transition-colors cursor-pointer" style={{ color: '#2E3A52' }}>Pricing</Link>
+              <Link href="/auth/signin" className="transition-colors cursor-pointer" style={{ color: '#2E3A52' }}>Sign In</Link>
+            </>
+          )}
           <Link href="/learn" className="transition-colors cursor-pointer" style={{ color: '#2E3A52' }}>Database</Link>
           <Link href="/code" className="transition-colors cursor-pointer" style={{ color: '#2E3A52' }}>Code</Link>
         </div>

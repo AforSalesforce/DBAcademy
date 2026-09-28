@@ -1,5 +1,6 @@
 import 'server-only';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import { accountsEnabled } from '@/lib/features';
 
 /**
  * Service-role client — bypasses RLS. Server-side only (webhooks, admin
@@ -7,6 +8,9 @@ import { createClient as createSupabaseClient } from '@supabase/supabase-js';
  * component ever imports this.
  */
 export function createAdminClient() {
+  if (!accountsEnabled()) {
+    throw new Error('Accounts are disabled (ACCOUNTS_ENABLED is not "true").');
+  }
   const url = process.env.SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !serviceKey) {

@@ -60,6 +60,7 @@ const activeProSub = {
 
 describe('POST /api/billing/webhook', () => {
   beforeEach(() => {
+    vi.stubEnv('ACCOUNTS_ENABLED', 'true');
     vi.stubEnv('STRIPE_WEBHOOK_SECRET', 'whsec_test');
     vi.stubEnv('STRIPE_PRICE_PRO_MONTHLY', 'price_pro_m');
     stripeMock.webhooks.constructEvent.mockReset();

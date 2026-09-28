@@ -117,6 +117,22 @@ file to `src/lib/`.
 Copy `.env.example` → `.env.local`. Three independent systems, each optional
 except Supabase (needed for accounts):
 
+### `ACCOUNTS_ENABLED` — master switch (off by default)
+Accounts, cloud sync, payments, institutions and server-side code execution
+(Java/C/C++/Go) all sit behind `ACCOUNTS_ENABLED=true` (`src/lib/features.ts`).
+**Unset, the site is a browser-only learning tool**, which is how production
+runs today:
+- Server: `getSupabaseConfig()` returns null (so auth, sync, profile and the
+  code runner all act unconfigured), `createAdminClient()` throws, billing
+  routes 404, and middleware redirects `/auth/*`, `/pricing`, `/admin` home.
+- UI: `<FeaturesProvider>` (root layout) exposes `useFeatures().accounts`;
+  sign-in/pricing links, the billing button, server-language tabs and
+  plan-limit "Upgrade" prompts are hidden, and plan limits aren't enforced.
+- The server is the enforcement point; the UI only mirrors it. When adding an
+  account or payment feature, gate it on the server first.
+- Static pages read the flag at build time, so changing it on Vercel needs a
+  redeploy (which env changes need anyway).
+
 ### Supabase (accounts, sync, billing-plan storage)
 - Get `SUPABASE_URL` / `SUPABASE_ANON_KEY` from Settings → API Keys in the
   Supabase dashboard. They have **no `NEXT_PUBLIC_` prefix on purpose**: all
