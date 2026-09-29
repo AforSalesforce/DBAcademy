@@ -250,6 +250,36 @@ into `useDatabaseWorkspace.ts` (DB engines) or `src/app/code/page.tsx`'s
 `LANGUAGES` array (code engines) — don't special-case a new engine type
 through the rest of the codebase.
 
+## 7a. Lessons, sample data and grading
+
+**Sample data** for SQLite and PostgreSQL lives in one place,
+`src/db-engines/seed/mystery.ts` (the "SQL City" murder mystery, plus a
+`users` table for Postgres). It is versioned by `SEED_VERSION`: saved
+databases created before a bump get missing tables created and *empty*
+tables filled on next open; tables that hold rows are never touched. Bump the
+version whenever you change seed rows. NoSQL seed data is in
+`src/db-engines/nosql.ts`.
+
+**Lessons** are prose in `src/features/learn/curriculum/curriculum.ts`;
+each built-in lesson's graded task is in `curriculum/challenges.ts`
+(`prompt`, `starter`, `solution`, `hints`, and optional `check`,
+`orderMatters`, `allowColumnSubset` — see the comments there). Passing the
+challenge is what completes a lesson; XP drops by 5 per hint (min 10) and to
+5 once the solution is revealed.
+
+**Grading** (`src/features/learn/grading/`) never touches the learner's own
+database: `sandbox.ts` runs both the attempt and the reference solution on
+clean sample data (a fresh SQLite copy, a fresh NoSQL store, or one shared
+in-memory PGlite inside a transaction that is always rolled back), and
+`compare.ts` compares the results — ignoring column names/order and, unless
+`orderMatters`, row order. `explain-error.ts` turns engine errors into
+beginner hints ("did you mean…").
+
+**Adding or editing a lesson:** `tests/unit/curriculum/lessons.test.ts`
+fails unless the solution passes, the starter doesn't, and there are at
+least two hints. Add likely alternative answers to its `ACCEPTED` list and
+likely mistakes to `REJECTED`, so the grader's leniency is pinned down.
+
 ## 8. Testing
 
 Vitest, configured in `vitest.config.ts`, `npm test` runs it. **This is new**

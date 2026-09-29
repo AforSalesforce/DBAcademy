@@ -12,10 +12,14 @@ import { SavedQueriesPanel } from '@/features/learn/components/SavedQueriesPanel
 import { RunHistory } from '@/features/learn/components/RunHistory';
 import { NotesDrawer } from '@/features/learn/components/NotesDrawer';
 import { SchemaDesigner } from '@/features/learn/components/SchemaDesigner';
+import { ChallengeCard } from '@/features/learn/components/ChallengeCard';
+import { gradeAttempt, Grade } from '@/features/learn/grading/grade';
+import { explainError } from '@/features/learn/grading/explain-error';
+import { loadDraft, saveDraft } from '@/features/learn/lesson-drafts';
 import {
   Database, GraduationCap, BarChart3, NotebookPen, ChevronDown, ChevronUp,
   FolderOpen, Plus, Trash2, Check, Play, Sprout, RotateCcw,
-  PanelLeftClose, PanelLeftOpen,
+  PanelLeftClose, PanelLeftOpen, CheckCircle2,
   BookOpen, Table2, GitBranch, Bookmark, LayoutTemplate,
 } from 'lucide-react';
 import { EngineType } from '@/db-engines/types';
@@ -79,6 +83,9 @@ export default function LearnPage() {
   const [activeLesson, setActiveLesson] = useState<LessonContentType | null>(null);
   const [activeLessonModuleId, setActiveLessonModuleId] = useState<string | null>(null);
   const [userLessons, setUserLessons] = useState<Record<string, string>>({});
+  const [challengeUi, setChallengeUi] = useState<{ grade: Grade | null; checking: boolean; xpAwarded: number | null }>(
+    { grade: null, checking: false, xpAwarded: null },
+  );
 
   // ── Project / workspace state ──────────────────────────────────────────────
   const projectStore = useProjectStore();
@@ -94,7 +101,7 @@ export default function LearnPage() {
   const [saveQueryTitle, setSaveQueryTitle] = useState('');
 
   // ── Stores ─────────────────────────────────────────────────────────────────
-  const { updateStreak } = useProgressStore();
+  const { updateStreak, completeChallenge } = useProgressStore();
   const lessonProgress = useProgressStore(s => s.progress.lessonProgress);
   const { profile } = useProfile();
   // Plan limits only exist alongside paid plans. With accounts/payments off,
@@ -138,6 +145,14 @@ export default function LearnPage() {
       if (saved) setUserLessons(JSON.parse(saved));
     } catch { /* ignore */ }
   }, []);
+
+  // ── Keep each lesson's attempt, so reopening it restores the learner's work ─
+  const activeChallengeLessonId = activeLesson?.challenge ? activeLesson.id : null;
+  useEffect(() => {
+    if (!activeChallengeLessonId) return;
+    const timer = setTimeout(() => saveDraft(activeChallengeLessonId, workspace.query), 400);
+    return () => clearTimeout(timer);
+  }, [workspace.query, activeChallengeLessonId]);
 
   // ── Close project menu on outside click ───────────────────────────────────
   useEffect(() => {
@@ -251,6 +266,11 @@ export default function LearnPage() {
   // ── Project helpers ────────────────────────────────────────────────────────
 
   const handleSelectProject = (project: Project) => {
+    const lessonEngine = CURRICULUM.find(m => m.id === activeLessonModuleId)?.engine;
+    if (activeLesson && lessonEngine && lessonEngine !== project.engine) {
+      setActiveLesson(null);
+      setActiveLessonModuleId(null);
+    }
     projectStore.setActiveProject(project.id);
     setProjectMenuOpen(false);
     setShowNewProject(false);
@@ -352,22 +372,56 @@ export default function LearnPage() {
   const handleSelectLesson = (lesson: Lesson, moduleId: string) => {
     const fullLesson = getLessonById(moduleId, lesson.id);
     setActiveLessonModuleId(moduleId);
+    setChallengeUi({ grade: null, checking: false, xpAwarded: null });
     if (fullLesson) {
       setActiveLesson(fullLesson);
+      // The learner's own attempt if they have one; otherwise the starter.
+      const editorText = loadDraft(fullLesson.id) ?? fullLesson.challenge?.starter ?? fullLesson.defaultQuery;
       const module = modules.find(m => m.id === moduleId);
       if (module?.engine && module.engine !== dbType) {
         // Switch to the matching default playground for that engine
         const playgroundId = DEFAULT_PROJECT_IDS[module.engine] ?? DEFAULT_PROJECT_IDS.sqlite!;
-        if (fullLesson.defaultQuery) workspace.setQueryForProject(playgroundId, fullLesson.defaultQuery);
+        if (editorText) workspace.setQueryForProject(playgroundId, editorText);
         projectStore.setActiveProject(playgroundId);
-      } else if (fullLesson.defaultQuery) {
-        workspace.setQuery(fullLesson.defaultQuery);
+      } else if (editorText) {
+        workspace.setQuery(editorText);
       }
     } else {
       const savedContent = userLessons[lesson.id];
       setActiveLesson({ id: lesson.id, title: lesson.title, content: savedContent || `# ${lesson.title}\n\nThis is a user-created lesson. Add content here.` });
     }
   };
+
+  // ── Challenges ─────────────────────────────────────────────────────────────
+
+  const lessonEngine = CURRICULUM.find(m => m.id === activeLessonModuleId)?.engine;
+
+  const checkChallenge = async () => {
+    const challenge = activeLesson?.challenge;
+    if (!activeLesson || !challenge || !activeLessonModuleId || !lessonEngine) return;
+    if (lessonEngine !== 'sqlite' && lessonEngine !== 'postgres' && lessonEngine !== 'nosql') return;
+    const lessonId = activeLesson.id;
+    const attempt = workspace.query;
+    setChallengeUi({ grade: null, checking: true, xpAwarded: null });
+    // Show the attempt's own output too, as if they'd pressed Run.
+    const [grade] = await Promise.all([
+      gradeAttempt(lessonEngine, lessonId, challenge, attempt),
+      runQuery(attempt),
+    ]);
+    const xpAwarded = grade.status === 'pass' ? completeChallenge(lessonId, activeLessonModuleId) : null;
+    setChallengeUi({ grade, checking: false, xpAwarded });
+  };
+
+  /** The lesson after the open one, following the curriculum order for its engine. */
+  const nextLesson = (() => {
+    if (!activeLesson || !lessonEngine) return null;
+    const ordered = CURRICULUM.filter(m => m.engine === lessonEngine)
+      .flatMap(m => m.lessons.map(l => ({ lesson: l, moduleId: m.id })));
+    const i = ordered.findIndex(x => x.lesson.id === activeLesson.id);
+    return i >= 0 && i < ordered.length - 1 ? ordered[i + 1] : null;
+  })();
+
+  const explainForEngine = (message: string) => explainError(message, { engine: dbType, tables: workspace.schema });
 
   const activeModules = modules
     .filter(m => m.engine === dbType)
@@ -679,6 +733,26 @@ export default function LearnPage() {
               moduleId={activeLessonModuleId || undefined}
               onRunSample={q => { workspace.setQuery(q); runQuery(q); }}
               runsSample
+              challengeSlot={activeLesson.challenge && (
+                <ChallengeCard
+                  lessonId={activeLesson.id}
+                  challenge={activeLesson.challenge}
+                  grade={challengeUi.grade}
+                  checking={challengeUi.checking}
+                  xpAwarded={challengeUi.xpAwarded}
+                  onCheck={checkChallenge}
+                  onResetStarter={() => {
+                    if (window.confirm('Replace the editor contents with the starting query?')) {
+                      workspace.setQuery(activeLesson.challenge!.starter);
+                    }
+                  }}
+                  onUseSolution={sql => workspace.setQuery(sql)}
+                  onNextLesson={nextLesson
+                    ? () => handleSelectLesson({ id: nextLesson.lesson.id, title: nextLesson.lesson.title, completed: false }, nextLesson.moduleId)
+                    : undefined}
+                  explain={explainForEngine}
+                />
+              )}
               onClose={() => setActiveLesson(null)}
               onEdit={
                 !CURRICULUM.some(m => m.lessons.some(l => l.id === activeLesson.id))
@@ -728,8 +802,20 @@ export default function LearnPage() {
               </span>
             </div>
 
-            {/* Right: Save + Run */}
+            {/* Right: Save + Check + Run */}
             <div className="flex items-center gap-1.5">
+              {activeLesson?.challenge && (
+                <button
+                  onClick={checkChallenge}
+                  disabled={challengeUi.checking}
+                  title="Check your answer to this lesson's challenge"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-semibold transition-colors cursor-pointer disabled:opacity-60"
+                  style={{ color: '#00C7BE', background: 'rgba(0,199,190,0.08)', border: '1px solid rgba(0,199,190,0.3)' }}
+                >
+                  <CheckCircle2 style={{ width: 12, height: 12 }} aria-hidden="true" />
+                  {challengeUi.checking ? 'Checking…' : 'Check'}
+                </button>
+              )}
               <button
                 onClick={() => openSaveQueryModal(workspace.query, dbType)}
                 title="Save query (⌘S)"
@@ -840,6 +926,7 @@ export default function LearnPage() {
                     columns={workspace.resultColumns}
                     message={workspace.resultMessage}
                     hasRun={workspace.hasRun}
+                    errorHint={workspace.error ? explainForEngine(workspace.error) : null}
                   />
                 )}
                 {resultsTab === 'history' && (

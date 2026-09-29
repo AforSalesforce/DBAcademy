@@ -1,11 +1,15 @@
 import { QuizQuestion } from '@/features/learn/components/Quiz';
 import { EngineType } from '@/db-engines/types';
+import { CHALLENGES, Challenge } from './challenges';
 
 export interface LessonContentType {
     id: string;
     title: string;
     content: string;
+    /** Example code shown with a "Try it out" button (code playground lessons). */
     defaultQuery?: string;
+    /** Graded task; built-in SQL/NoSQL lessons are completed by passing it. */
+    challenge?: Challenge;
     quiz?: QuizQuestion[];
 }
 
@@ -16,7 +20,7 @@ export interface ModuleType {
     lessons: LessonContentType[];
 }
 
-export const CURRICULUM: ModuleType[] = [
+const LESSONS: ModuleType[] = [
     // ===== SQLITE MODULES =====
     {
         id: 'sqlite-1',
@@ -35,16 +39,10 @@ You have access to the city's police department database.
 ## Your Mission
 Retrieve the crime scene report for the murder that happened on **Jan 15, 2018** in **SQL City**.
 
-### Hints
-- Use the \`crime_scene_report\` table.
-- Filter by \`city\` and \`date\`.
-- Dates in this database are stored as integers in \`YYYYMMDD\` form, so Jan 15, 2018 is \`20180115\`.
+The reports live in the \`crime_scene_report\` table. Dates are stored as whole numbers in \`YYYYMMDD\` form, so Jan 15, 2018 is \`20180115\`.
 
-Read the murder report's **description** carefully. It tells you where to look next.
+When you find the report, read its **description** carefully. It tells you where to look next.
                 `,
-                defaultQuery: `SELECT * FROM crime_scene_report 
-WHERE city = 'SQL City' 
-AND date = 20180115;`,
                 quiz: [
                     {
                         id: 'q1-1-1',
@@ -70,9 +68,11 @@ AND date = 20180115;`,
 
 The crime scene report mentions two witnesses.
 
-## Your Task
-1. The first witness lives in the **highest-numbered house on Northwestern Dr**. Sort by \`address_number\` descending: the first row is your witness.
-2. The second witness is named **Annabel** and lives on **Franklin Ave**. Try it yourself:
+## Sorting and picking the top row
+\`ORDER BY column DESC\` sorts from highest to lowest, and \`LIMIT 1\` keeps only the first row. Together they answer "which is the biggest?" questions.
+
+## The second witness
+The second witness is named **Annabel** and lives on **Franklin Ave**. Try this query too:
 
 \`\`\`sql
 SELECT * FROM person
@@ -85,9 +85,6 @@ Why filter on the street too? Run it without that line and see who else turns up
 ### Schema Reminder
 - \`person\` table has: id, name, license_id, address_number, address_street_name, ssn
                 `,
-                defaultQuery: `SELECT * FROM person 
-WHERE address_street_name = 'Northwestern Dr'
-ORDER BY address_number DESC;`
             },
             {
                 id: '1-3',
@@ -97,8 +94,7 @@ ORDER BY address_number DESC;`
 
 You have two witnesses. Time to read what they told the police.
 
-## Your Task
-Read both witnesses' interview transcripts. Use a JOIN to connect the \`person\` and \`interview\` tables. Note every clue they give you; you'll need them all in the next lesson.
+Transcripts live in the \`interview\` table, linked to \`person\` by \`person_id\`. A JOIN puts each person's name next to what they said. Note every clue the witnesses give you; you'll need them all in the next lesson.
 
 ### Joins Syntax
 \`\`\`sql
@@ -108,10 +104,6 @@ JOIN interview i ON p.id = i.person_id
 WHERE p.name = 'Witness Name';
 \`\`\`
                 `,
-                defaultQuery: `SELECT p.name, i.transcript
-FROM person p
-JOIN interview i ON p.id = i.person_id
-WHERE p.name IN ('Morris Kettle', 'Annabel Voss');`,
                 quiz: [
                     {
                         id: 'q1-3-1',
@@ -144,12 +136,7 @@ The witnesses gave you four clues:
 
 The query in the editor already joins gym members, people and driver's licenses, and applies the first two clues. **Three suspects** are left.
 
-## Your Task
-Add two more conditions to the \`WHERE\` clause for clues 3 and 4, until only **one** person is left.
-
-### Hints
-- Gender is in \`drivers_license.gender\`.
-- Use \`LIKE '%K9%'\` to match text anywhere in the plate.
+Gender and plate number are both in \`drivers_license\`. \`LIKE '%K9%'\` matches text anywhere in a value.
 
 ## Make your accusation
 When you have a name, check it (replace the name):
@@ -161,12 +148,6 @@ WHERE code = hex(upper('Your Suspect'));
 
 A verdict means you cracked the case. **No rows** means you have the wrong person, so go back over the clues.
                 `,
-                defaultQuery: `SELECT p.name, g.id AS member_id, d.gender, d.plate_number, d.car_make
-FROM get_fit_now_member g
-JOIN person p ON p.id = g.person_id
-JOIN drivers_license d ON d.id = p.license_id
-WHERE g.membership_status = 'gold'
-  AND g.id LIKE 'G7%';`,
                 quiz: [
                     {
                         id: 'q1-4-1',
@@ -205,10 +186,8 @@ SELECT column1, column2 FROM table_name;
 SELECT * FROM table_name;  -- All columns
 \`\`\`
 
-## Practice
-Try selecting specific columns from the \`person\` table.
+
                 `,
-                defaultQuery: `SELECT name, address_street_name FROM person LIMIT 10;`,
                 quiz: [
                     {
                         id: 'q-sf-1',
@@ -238,10 +217,8 @@ The WHERE clause lets you specify conditions to filter rows.
 | LIKE | Pattern matching |
 | IN | Match any in a list |
 
-## Practice
-Find all crime scene reports of type 'murder'.
+
                 `,
-                defaultQuery: `SELECT * FROM crime_scene_report WHERE type = 'murder';`,
                 quiz: [
                     {
                         id: 'q-sf-2a',
@@ -277,10 +254,8 @@ SELECT * FROM table LIMIT 10;         -- First 10 rows
 SELECT * FROM table LIMIT 10 OFFSET 5; -- Skip 5, then 10
 \`\`\`
 
-## Practice
-Get the 5 most recent crime reports.
+
                 `,
-                defaultQuery: `SELECT * FROM crime_scene_report ORDER BY date DESC LIMIT 5;`
             },
             {
                 id: 'sql-fun-4',
@@ -304,12 +279,8 @@ SELECT city, COUNT(*) as total
 FROM crime_scene_report GROUP BY city;
 \`\`\`
 
-## Practice
-Count crime reports by type.
+
                 `,
-                defaultQuery: `SELECT type, COUNT(*) as count 
-FROM crime_scene_report 
-GROUP BY type;`,
                 quiz: [
                     {
                         id: 'q-sf-4a',
@@ -349,12 +320,8 @@ FROM table_a a
 INNER JOIN table_b b ON a.id = b.a_id;
 \`\`\`
 
-## Practice
-Join persons with their driver's licenses.
+
                 `,
-                defaultQuery: `SELECT p.name, d.car_make, d.car_model
-FROM person p
-INNER JOIN drivers_license d ON p.license_id = d.id;`,
                 quiz: [
                     {
                         id: 'q-join-1',
@@ -380,12 +347,8 @@ FROM table_a a
 LEFT JOIN table_b b ON a.id = b.a_id;
 \`\`\`
 
-## Practice
-Find all people, including those without a driver's license.
+
                 `,
-                defaultQuery: `SELECT p.name, d.car_make
-FROM person p
-LEFT JOIN drivers_license d ON p.license_id = d.id;`
             },
             {
                 id: 'join-3',
@@ -404,13 +367,8 @@ WHERE id IN (
 );
 \`\`\`
 
-## Practice
-Find gold members of the gym.
+
                 `,
-                defaultQuery: `SELECT p.name, g.membership_status
-FROM person p
-JOIN get_fit_now_member g ON p.id = g.person_id
-WHERE g.membership_status = 'gold';`,
                 quiz: [
                     {
                         id: 'q-join-3',
@@ -448,22 +406,8 @@ CREATE TABLE table_name (
 - UNIQUE — no duplicates
 - DEFAULT — fallback value
 
-## Practice
-Create a students table.
+
                 `,
-                defaultQuery: `CREATE TABLE IF NOT EXISTS students (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    email TEXT UNIQUE,
-    grade INTEGER DEFAULT 0,
-    enrolled_at TEXT DEFAULT CURRENT_TIMESTAMP
-);
-
-INSERT INTO students (name, email, grade) VALUES
-    ('Ada Lovelace', 'ada@example.com', 92),
-    ('Alan Turing', 'alan@example.com', 88);
-
-SELECT * FROM students;`,
                 quiz: [
                     {
                         id: 'q-schema-1a',
@@ -498,21 +442,8 @@ CREATE TABLE child_table (
 );
 \`\`\`
 
-## Practice
-Create a \`case_notes\` table whose \`person_id\` must point at a row in \`person\`, add a note, then join it back to see who the note is about.
+
                 `,
-                defaultQuery: `CREATE TABLE IF NOT EXISTS case_notes (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    person_id INTEGER NOT NULL,
-    note TEXT NOT NULL,
-    FOREIGN KEY (person_id) REFERENCES person(id)
-);
-
-INSERT INTO case_notes (person_id, note) VALUES (32, 'Refused to answer questions.');
-
-SELECT p.name, n.note
-FROM case_notes n
-JOIN person p ON p.id = n.person_id;`
             }
         ]
     },
@@ -537,10 +468,8 @@ PostgreSQL is the world's most advanced open-source relational database.
 - Full-text search
 - Extensible with custom functions
 
-## Your First Query
-This database comes with a \`users\` table. Run the query to see the first 10 users.
+This database comes with a \`users\` table of 30 people: \`id\`, \`name\`, \`email\`, \`job\` and \`created_at\`.
                 `,
-                defaultQuery: `SELECT * FROM users LIMIT 10;`,
                 quiz: [
                     {
                         id: 'q-pg-1',
@@ -568,22 +497,8 @@ This database comes with a \`users\` table. Run the query to see the first 10 us
 | UUID | Unique ID |
 | DECIMAL(p,s) | Exact numeric |
 
-## Practice
-Create a table that uses several of these types, add two rows, and read them back.
+
                 `,
-                defaultQuery: `CREATE TABLE IF NOT EXISTS inventory (
-    id SERIAL PRIMARY KEY,
-    name TEXT NOT NULL,
-    price DECIMAL(10,2),
-    metadata JSONB DEFAULT '{}',
-    created_at TIMESTAMP DEFAULT NOW()
-);
-
-INSERT INTO inventory (name, price, metadata) VALUES 
-('Widget', 9.99, '{"color": "blue"}'),
-('Gadget', 24.99, '{"color": "red"}');
-
-SELECT * FROM inventory;`
             },
             {
                 id: 'pg-1-3',
@@ -599,14 +514,8 @@ SELECT * FROM inventory;`
 | CONCAT(a,b) | Concatenate |
 | TRIM(s) | Remove whitespace |
 
-## Practice
-Show each user's name in upper case next to its length. Then try swapping in \`LOWER\` or \`CONCAT(name, ' <', email, '>')\`.
+
                 `,
-                defaultQuery: `SELECT 
-    name,
-    UPPER(name) as upper_name,
-    LENGTH(name) as name_length
-FROM users LIMIT 10;`
             }
         ]
     },
@@ -630,13 +539,8 @@ Window functions perform calculations across rows without collapsing results.
 - LAG() / LEAD() — previous/next values
 - SUM() OVER() — running total
 
-## Practice
-Rank users by creation date.
+
                 `,
-                defaultQuery: `SELECT 
-    name, email, created_at,
-    ROW_NUMBER() OVER (ORDER BY created_at) as join_order
-FROM users;`,
                 quiz: [
                     {
                         id: 'q-pg-2-1',
@@ -663,16 +567,8 @@ WITH cte_name AS (
 SELECT * FROM cte_name;
 \`\`\`
 
-## Practice
-Use a CTE to work out each user's name length, then keep only the long names (more than 15 characters).
+
                 `,
-                defaultQuery: `WITH name_lengths AS (
-    SELECT name, LENGTH(name) as name_len
-    FROM users
-)
-SELECT * FROM name_lengths
-WHERE name_len > 15
-ORDER BY name_len DESC;`
             }
         ]
     },
@@ -698,10 +594,8 @@ db.collection.find({ key: val })    // Find with filter
 db.collection.insertOne({ ... })    // Insert a document
 \`\`\`
 
-## Your Task
-Find all users with role "admin".
+The sample \`users\` collection has fields like \`name\`, \`role\`, \`age\`, \`isActive\` and \`city\`.
                 `,
-                defaultQuery: `db.users.find({ role: "admin" })`,
                 quiz: [
                     {
                         id: 'q-nosql-1',
@@ -733,16 +627,8 @@ db.collection.insertMany([{ name: "Bo" }, { name: "Cy" }])
 - Each document gets a unique \`_id\` (returned as \`insertedId\`)
 - Fields can be any JSON type
 
-## Practice
-Insert a new moderator. Then run \`db.users.find({ role: "moderator" })\` to check it's there.
+
                 `,
-                defaultQuery: `db.users.insertOne({ 
-    name: "Jane Smith", 
-    email: "jane@example.com", 
-    role: "moderator", 
-    age: 28, 
-    isActive: true 
-})`
             },
             {
                 id: 'mongo-1-3',
@@ -757,10 +643,8 @@ Insert a new moderator. Then run \`db.users.find({ role: "moderator" })\` to che
 | $lt | Less than |
 | $ne | Not equal |
 
-## Practice
-Find active users over age 25.
+
                 `,
-                defaultQuery: `db.users.find({ age: { $gt: 25 }, isActive: true })`,
                 quiz: [
                     {
                         id: 'q-nosql-3',
@@ -805,25 +689,18 @@ Store IDs pointing to other collections:
 - Large sub-documents
 - Many-to-many relationships
 
-## Practice
-Insert a customer with an embedded address and order list, then query it with \`db.customers.find({ "address.city": "Springfield" })\`.
+
                 `,
-                defaultQuery: `db.customers.insertOne({
-    name: "Alice Johnson",
-    email: "alice@example.com",
-    address: {
-        street: "123 Main St",
-        city: "Springfield"
-    },
-    recentOrders: [
-        { product: "Widget Pro", price: 29.99 },
-        { product: "Gadget X", price: 49.99 }
-    ]
-})`
             }
         ]
     }
 ];
+
+/** The SQL/NoSQL curriculum, each lesson joined with its challenge. */
+export const CURRICULUM: ModuleType[] = LESSONS.map(m => ({
+    ...m,
+    lessons: m.lessons.map(l => ({ ...l, challenge: CHALLENGES[l.id] })),
+}));
 
 export function getLessonById(moduleId: string, lessonId: string): LessonContentType | undefined {
     const module = CURRICULUM.find(m => m.id === moduleId);

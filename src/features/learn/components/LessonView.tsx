@@ -22,9 +22,16 @@ interface LessonViewProps {
     runsSample?: boolean;
     onClose: () => void;
     onEdit?: (newContent: string) => void;
+    /**
+     * The lesson's graded challenge (a <ChallengeCard>). When present, passing
+     * it is what completes the lesson: there's no "Mark as complete" button
+     * and the quiz only earns XP.
+     */
+    challengeSlot?: React.ReactNode;
 }
 
-export const LessonView: React.FC<LessonViewProps> = ({ id, title, content, defaultQuery, quiz, moduleId, onRunSample, runsSample = false, onClose, onEdit }) => {
+export const LessonView: React.FC<LessonViewProps> = ({ id, title, content, defaultQuery, quiz, moduleId, onRunSample, runsSample = false, onClose, onEdit, challengeSlot }) => {
+    const hasChallenge = Boolean(challengeSlot);
     const [note, setNote] = useState('');
     const [notesReady, setNotesReady] = useState(false);
     const [noteSaveState, setNoteSaveState] = useState<NoteSaveState>('idle');
@@ -144,7 +151,7 @@ export const LessonView: React.FC<LessonViewProps> = ({ id, title, content, defa
 
             <div className="flex-1 overflow-y-auto p-6 space-y-8">
                 {/* Content */}
-                <div className="prose dark:prose-invert prose-slate max-w-none">
+                <div className="prose dark:prose-invert prose-slate max-w-none prose-code:before:content-none prose-code:after:content-none">
                     {isEditing ? (
                         <textarea
                             value={editedContent}
@@ -160,8 +167,10 @@ export const LessonView: React.FC<LessonViewProps> = ({ id, title, content, defa
                     )}
                 </div>
 
+                {!isEditing && challengeSlot}
+
                 {/* Sample Query */}
-                {!isEditing && defaultQuery && (
+                {!isEditing && defaultQuery && !hasChallenge && (
                     <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                         <div className="flex items-center justify-between gap-3 mb-2">
                             <h3 className="font-bold text-blue-800 dark:text-blue-200">Try it out</h3>
@@ -206,10 +215,11 @@ export const LessonView: React.FC<LessonViewProps> = ({ id, title, content, defa
                             <Quiz
                                 title={`${title} Quiz`}
                                 questions={quiz}
+                                completesLesson={!hasChallenge && Boolean(moduleId)}
                                 onComplete={(score) => {
                                     // Record now; the quiz stays open on its results screen.
                                     recordQuizScore(id, score);
-                                    if (score >= 70 && moduleId) {
+                                    if (score >= 70 && moduleId && !hasChallenge) {
                                         markLessonComplete(id, moduleId);
                                     }
                                 }}
@@ -236,7 +246,7 @@ export const LessonView: React.FC<LessonViewProps> = ({ id, title, content, defa
                 )}
 
                 {/* Mark Complete Button */}
-                {!isEditing && moduleId && (
+                {!isEditing && moduleId && (isComplete || !hasChallenge) && (
                     <div className="flex justify-end" aria-live="polite">
                         {isComplete ? (
                             <p className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-green-700 dark:text-green-400">

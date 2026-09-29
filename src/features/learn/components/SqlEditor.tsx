@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import Editor, { OnMount } from '@monaco-editor/react';
 
 interface SqlEditorProps {
@@ -11,10 +11,17 @@ interface SqlEditorProps {
 }
 
 const SqlEditor: React.FC<SqlEditorProps> = ({ value, onChange, onRun, language = 'sql' }) => {
+    // Monaco keeps the command registered at mount, so read the latest
+    // onRun through a ref — otherwise Cmd+Enter runs a stale query.
+    const onRunRef = useRef(onRun);
+    useEffect(() => {
+        onRunRef.current = onRun;
+    }, [onRun]);
+
     const handleEditorDidMount: OnMount = (editor, monaco) => {
         // Add command to run query with Cmd+Enter or Ctrl+Enter
         editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
-            onRun();
+            onRunRef.current();
         });
     };
 

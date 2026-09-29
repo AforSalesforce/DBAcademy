@@ -18,9 +18,11 @@ interface QuizProps {
   onComplete: (score: number) => void;
   /** Leave the results screen and go back to the lesson. */
   onContinue: () => void;
+  /** Passing marks the lesson complete (lessons without a challenge). */
+  completesLesson?: boolean;
 }
 
-export const Quiz: React.FC<QuizProps> = ({ title, questions, onComplete, onContinue }) => {
+export const Quiz: React.FC<QuizProps> = ({ title, questions, onComplete, onContinue, completesLesson = true }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showExplanation, setShowExplanation] = useState(false);
@@ -78,7 +80,9 @@ export const Quiz: React.FC<QuizProps> = ({ title, questions, onComplete, onCont
           You scored <span className={`font-bold ${passed ? 'text-green-400' : 'text-red-400'}`}>{score}/{questions.length}</span> ({percentage}%)
         </p>
         <p className="text-sm text-slate-500 mb-6">
-          {passed ? 'You passed, and this lesson is marked complete.' : 'You need 70% to pass. Reread the lesson, then try again.'}
+          {passed
+            ? (completesLesson ? 'You passed, and this lesson is marked complete.' : 'You passed. Nice work.')
+            : 'You need 70% to pass. Reread the lesson, then try again.'}
         </p>
         <div className="flex gap-3 justify-center">
           <button

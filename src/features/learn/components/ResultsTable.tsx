@@ -12,6 +12,8 @@ interface ResultsTableProps {
     message?: string | null;
     /** Whether anything has run yet, to tell "nothing yet" from "0 rows". */
     hasRun?: boolean;
+    /** Plain-language explanation of `error`, when there is one. */
+    errorHint?: string | null;
 }
 
 function EmptyState({ title, detail }: { title: string; detail: string }) {
@@ -23,9 +25,18 @@ function EmptyState({ title, detail }: { title: string; detail: string }) {
     );
 }
 
-const ResultsTable: React.FC<ResultsTableProps> = ({ results, error, columns: runColumns = [], message, hasRun = true }) => {
+const ResultsTable: React.FC<ResultsTableProps> = ({ results, error, columns: runColumns = [], message, hasRun = true, errorHint }) => {
     if (error) {
-        return <div className="query-error" role="alert">Error: {error}</div>;
+        return (
+            <div role="alert">
+                <div className="query-error">Error: {error}</div>
+                {errorHint && (
+                    <p className="px-4 -mt-2 pb-4 text-sm" style={{ color: '#EDF1FA' }}>
+                        <span className="font-semibold" style={{ color: '#F59E0B' }}>Tip: </span>{errorHint}
+                    </p>
+                )}
+            </div>
+        );
     }
 
     if (!results || results.length === 0) {

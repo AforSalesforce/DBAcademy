@@ -1,61 +1,120 @@
 import { describe, it, expect } from 'vitest';
 import { CURRICULUM } from '@/features/learn/curriculum/curriculum';
 import { SQLiteEngine } from '@/db-engines/sqlite';
-import { PostgresEngine } from '@/db-engines/postgres';
 import { NoSQLEngine } from '@/db-engines/nosql';
-import type { DatabaseEngine } from '@/db-engines/types';
+import { gradeAttempt } from '@/features/learn/grading/grade';
+import { runInSandbox } from '@/features/learn/grading/sandbox';
 
 /**
- * Every built-in lesson must work on a brand-new database: its sample query
- * runs without error, and if it ends in a read it returns rows. This is the
- * check that would have caught lessons shipping against empty tables.
+ * Every built-in lesson must be solvable on a brand-new database: its
+ * reference solution returns data and passes, and its starter doesn't
+ * already pass. This is the check that would have caught lessons shipping
+ * against empty tables.
  */
 
-function makeEngine(engine: string): DatabaseEngine {
-  if (engine === 'sqlite') return new SQLiteEngine();
-  if (engine === 'postgres') return new PostgresEngine();
-  if (engine === 'nosql') return new NoSQLEngine();
-  throw new Error(`No test engine for ${engine}`);
-}
-
-/** Final statement of a SQL script, ignoring comments and blank trailing `;`. */
-function lastStatement(sql: string): string {
-  const statements = sql
-    .replace(/--.*$/gm, '')
-    .split(';')
-    .map(s => s.trim())
-    .filter(Boolean);
-  return statements[statements.length - 1] ?? '';
-}
-
-function expectsRows(engine: string, query: string): boolean {
-  if (engine === 'nosql') return true; // reads return docs, writes return an ack
-  return /^(SELECT|WITH)\b/i.test(lastStatement(query));
-}
-
 const lessons = CURRICULUM.flatMap(m => m.lessons.map(l => ({ module: m, lesson: l })));
+const named = lessons.map(x => [`${x.module.id} / ${x.lesson.title}`, x] as const);
+type Engine = 'sqlite' | 'postgres' | 'nosql';
 
-describe('curriculum content', () => {
-  it.each(lessons.map(x => [`${x.module.id} / ${x.lesson.title}`, x] as const))(
-    '%s: sample query runs on a fresh database',
-    async (_name, { module, lesson }) => {
-      expect(lesson.defaultQuery, 'every lesson needs a sample query').toBeTruthy();
-      const engine = makeEngine(module.engine);
-      await engine.init();
-      const res = await engine.execute(lesson.defaultQuery!);
-      if (expectsRows(module.engine, lesson.defaultQuery!)) {
-        expect(res.rows.length, `"${lesson.title}" returned no rows`).toBeGreaterThan(0);
-      }
-    },
-    60_000,
-  );
+describe('curriculum challenges', () => {
+  it.each(named)('%s: has a complete challenge', (_name, { lesson }) => {
+    const c = lesson.challenge;
+    expect(c, 'every built-in lesson needs a challenge').toBeDefined();
+    expect(c!.prompt.length).toBeGreaterThan(20);
+    expect(c!.hints.length).toBeGreaterThanOrEqual(2);
+    expect(c!.starter.trim()).not.toBe(c!.solution.trim());
+    if (/CREATE TABLE/i.test(c!.solution)) {
+      expect(c!.solution, 'table-creating tasks must be re-runnable').toMatch(/^DROP TABLE IF EXISTS/);
+      expect(c!.starter).toMatch(/^DROP TABLE IF EXISTS/);
+    }
+  });
 
-  it.each(lessons.map(x => [`${x.module.id} / ${x.lesson.title}`, x] as const))(
-    '%s: has no empty Practice section',
-    (_name, { lesson }) => {
-      expect(lesson.content).not.toMatch(/##\s*Practice\s*$/);
-    },
-  );
+  it.each(named)('%s: the solution passes and returns data', async (_name, { module, lesson }) => {
+    const c = lesson.challenge!;
+    const expected = await runInSandbox(module.engine as Engine, c.solution, c.check);
+    expect(expected.rows.length, 'expected result is empty').toBeGreaterThan(0);
+    const grade = await gradeAttempt(module.engine as Engine, lesson.id, c, c.solution);
+    expect(grade).toEqual({ status: 'pass' });
+  }, 60_000);
+
+  it.each(named)('%s: the starter runs but does not pass', async (_name, { module, lesson }) => {
+    const c = lesson.challenge!;
+    const grade = await gradeAttempt(module.engine as Engine, lesson.id, c, c.starter);
+    expect(grade.status, JSON.stringify(grade)).toBe('fail');
+  }, 60_000);
+
+  it.each(named)('%s: has no empty Practice section', (_name, { lesson }) => {
+    expect(lesson.content).not.toMatch(/##\s*Practice\s*$/);
+  });
+});
+
+/** Other ways learners will write the answer — these must be accepted. */
+const ACCEPTED: [lessonId: string, attempt: string][] = [
+  ['1-1', "SELECT description FROM crime_scene_report WHERE date = 20180115 AND city = 'SQL City' AND type = 'murder'"],
+  ['1-2', "SELECT name FROM person WHERE address_street_name = 'Northwestern Dr' ORDER BY address_number DESC LIMIT 1"],
+  ['1-3', 'SELECT p.name, i.transcript FROM interview i JOIN person p ON p.id = i.person_id WHERE i.person_id IN (10, 20)'],
+  ['1-3', "SELECT i.transcript, p.name FROM person p JOIN interview i ON p.id = i.person_id WHERE p.name = 'Morris Kettle' OR p.name = 'Annabel Voss'"],
+  ['1-4', "SELECT p.name FROM get_fit_now_member g JOIN person p ON p.id = g.person_id JOIN drivers_license d ON d.id = p.license_id WHERE g.membership_status = 'gold' AND g.id LIKE 'G7%' AND d.gender = 'male' AND d.plate_number LIKE '%K9%'"],
+  ['sql-fun-2', "SELECT * FROM crime_scene_report WHERE city = 'Boston' OR city = 'Chicago'"],
+  ['sql-fun-4', 'SELECT COUNT(*) AS n, city FROM crime_scene_report GROUP BY city ORDER BY n DESC'],
+  ['join-1', 'SELECT person.name, drivers_license.car_make FROM drivers_license JOIN person ON person.license_id = drivers_license.id'],
+  ['join-2', 'SELECT name FROM person WHERE license_id IS NULL'],
+  ['join-3', "SELECT p.name FROM person p JOIN get_fit_now_member g ON g.person_id = p.id WHERE g.membership_status = 'gold'"],
+  ['schema-1', "DROP TABLE IF EXISTS pets; CREATE TABLE pets (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, species TEXT); INSERT INTO pets (name, species) VALUES ('Tom', 'Cat'); INSERT INTO pets (name, species) VALUES ('Rex', 'Dog');"],
+  ['pg-1-3', 'SELECT LENGTH(name) AS len, UPPER(name) AS shout FROM users'],
+  ['pg-2-1', 'SELECT name, RANK() OVER (ORDER BY created_at) AS join_order FROM users ORDER BY created_at DESC'],
+  ['mongo-1-2', 'db.users.insertOne({ name: "Rosa Diaz", role: "moderator", age: 33, isActive: true, email: "rosa@example.com" })'],
+  ['mongo-1-3', 'db.users.find({ isActive: true, age: { $gt: 29 } })'],
+];
+
+/** Plausible wrong answers — these must be rejected, with the right reason. */
+const REJECTED: [lessonId: string, attempt: string, kind: string][] = [
+  ['1-1', "SELECT * FROM crime_scene_report WHERE city = 'SQL City' AND date = 20180115", 'row-count'],
+  ['1-2', "SELECT * FROM person WHERE address_street_name = 'Northwestern Dr' ORDER BY address_number ASC LIMIT 1", 'values'],
+  ['1-4', "SELECT p.name, d.plate_number FROM get_fit_now_member g JOIN person p ON p.id = g.person_id JOIN drivers_license d ON d.id = p.license_id WHERE g.id LIKE 'G7%' AND d.plate_number LIKE '%K9%'", 'row-count'],
+  ['sql-fun-3', 'SELECT * FROM crime_scene_report ORDER BY date ASC LIMIT 3', 'values'],
+  ['pg-1-1', 'SELECT name, email FROM users ORDER BY id DESC LIMIT 5', 'values'],
+  ['join-2', 'SELECT p.name, p.id FROM person p WHERE license_id IS NULL', 'column-count'],
+  ['sql-fun-1', 'SELECT name, ssn FROM person', 'values'],
+  ['1-1', 'SELECT nickname FROM crime_scene_report', 'error'],
+];
+
+const lessonById = new Map(lessons.map(x => [x.lesson.id, x]));
+
+describe('grading accepts equivalent answers', () => {
+  it.each(ACCEPTED)('%s: %s', async (id, attempt) => {
+    const { module, lesson } = lessonById.get(id)!;
+    const grade = await gradeAttempt(module.engine as Engine, id, lesson.challenge!, attempt);
+    expect(grade.status, JSON.stringify(grade)).toBe('pass');
+  }, 60_000);
+});
+
+describe('grading rejects wrong answers', () => {
+  it.each(REJECTED)('%s: %s', async (id, attempt, kind) => {
+    const { module, lesson } = lessonById.get(id)!;
+    const grade = await gradeAttempt(module.engine as Engine, id, lesson.challenge!, attempt);
+    if (kind === 'error') expect(grade.status).toBe('error');
+    else expect(grade).toMatchObject({ status: 'fail', verdict: { kind } });
+  }, 60_000);
+});
+
+describe('grading sandbox', () => {
+  it('Postgres: an attempt\'s changes never leak into the next check', async () => {
+    await runInSandbox('postgres', 'CREATE TABLE leak_test (x int); DELETE FROM users;');
+    const users = await runInSandbox('postgres', 'SELECT count(*)::int AS n FROM users');
+    expect(users.rows[0].n).toBe(30);
+    await expect(runInSandbox('postgres', 'SELECT * FROM leak_test')).rejects.toThrow(/does not exist/);
+  }, 60_000);
+
+  it('Postgres: refuses scripts with their own transaction control', async () => {
+    await expect(runInSandbox('postgres', 'BEGIN; DELETE FROM users; COMMIT;')).rejects.toThrow(/Remove BEGIN/);
+  });
+
+  it('SQLite: every check starts from the original data', async () => {
+    await runInSandbox('sqlite', 'DELETE FROM person;');
+    const people = await runInSandbox('sqlite', 'SELECT count(*) AS n FROM person');
+    expect(people.rows[0].n).toBe(20);
+  });
 });
 
 describe('SQL City murder mystery', () => {

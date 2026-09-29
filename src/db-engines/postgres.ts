@@ -2,6 +2,13 @@ import { PGlite } from '@electric-sql/pglite';
 import { DatabaseEngine, TableDefinition, QueryResult } from './types';
 import { MYSTERY_TABLES, SEED_VERSION, USERS_TABLE, applySeed } from './seed/mystery';
 
+/** Which of several scripts failed (see executeInRollback). */
+export class ScriptStepError extends Error {
+    constructor(message: string, readonly step: number) {
+        super(message);
+    }
+}
+
 export class PostgresEngine implements DatabaseEngine {
     type = 'postgres' as const;
     private db: PGlite | null = null;
@@ -63,6 +70,30 @@ export class PostgresEngine implements DatabaseEngine {
       DROP SCHEMA IF EXISTS dbacademy CASCADE;
     `);
         await this.ensureSeed();
+    }
+
+    /**
+     * Run each script in turn and throw every change away afterwards.
+     * Used to grade attempts against pristine sample data. Scripts must not
+     * contain their own BEGIN/COMMIT/ROLLBACK — callers check for that.
+     * A failure is reported as a ScriptStepError saying which script failed.
+     */
+    async executeInRollback(scripts: string[]): Promise<QueryResult[]> {
+        if (!this.db) throw new Error('DB not initialized');
+        await this.db.exec('BEGIN');
+        try {
+            const results: QueryResult[] = [];
+            for (const [step, script] of scripts.entries()) {
+                try {
+                    results.push(await this.execute(script));
+                } catch (e) {
+                    throw new ScriptStepError(e instanceof Error ? e.message : String(e), step);
+                }
+            }
+            return results;
+        } finally {
+            await this.db.exec('ROLLBACK');
+        }
     }
 
     async execute(query: string): Promise<QueryResult> {
