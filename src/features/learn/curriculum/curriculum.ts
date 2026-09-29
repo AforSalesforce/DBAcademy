@@ -24,7 +24,7 @@ const LESSONS: ModuleType[] = [
     // ===== SQLITE MODULES =====
     {
         id: 'sqlite-1',
-        title: 'Module 1: The Murder Mystery',
+        title: 'The Murder Mystery',
         engine: 'sqlite',
         lessons: [
             {
@@ -169,7 +169,7 @@ A verdict means you cracked the case. **No rows** means you have the wrong perso
     },
     {
         id: 'sqlite-2',
-        title: 'Module 2: SQL Fundamentals',
+        title: 'SQL Fundamentals',
         engine: 'sqlite',
         lessons: [
             {
@@ -302,7 +302,7 @@ FROM crime_scene_report GROUP BY city;
     },
     {
         id: 'sqlite-3',
-        title: 'Module 3: Joins & Relationships',
+        title: 'Joins & Relationships',
         engine: 'sqlite',
         lessons: [
             {
@@ -383,7 +383,7 @@ WHERE id IN (
     },
     {
         id: 'sqlite-4',
-        title: 'Module 4: Schema Design',
+        title: 'Schema Design',
         engine: 'sqlite',
         lessons: [
             {
@@ -451,7 +451,7 @@ CREATE TABLE child_table (
     // ===== POSTGRESQL MODULES =====
     {
         id: 'postgres-1',
-        title: 'Module 1: PostgreSQL Basics',
+        title: 'PostgreSQL Basics',
         engine: 'postgres',
         lessons: [
             {
@@ -521,7 +521,7 @@ This database comes with a \`users\` table of 30 people: \`id\`, \`name\`, \`ema
     },
     {
         id: 'postgres-2',
-        title: 'Module 2: Advanced PostgreSQL',
+        title: 'Advanced PostgreSQL',
         engine: 'postgres',
         lessons: [
             {
@@ -576,7 +576,7 @@ SELECT * FROM cte_name;
     // ===== NOSQL MODULES =====
     {
         id: 'nosql-1',
-        title: 'Module 1: NoSQL Basics',
+        title: 'NoSQL Basics',
         engine: 'nosql',
         lessons: [
             {
@@ -659,7 +659,7 @@ db.collection.insertMany([{ name: "Bo" }, { name: "Cy" }])
     },
     {
         id: 'nosql-2',
-        title: 'Module 2: Data Modeling',
+        title: 'Data Modeling',
         engine: 'nosql',
         lessons: [
             {

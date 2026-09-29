@@ -275,6 +275,18 @@ in-memory PGlite inside a transaction that is always rolled back), and
 `orderMatters`, row order. `explain-error.ts` turns engine errors into
 beginner hints ("did you mean…").
 
+**The learning path** is `CURRICULUM` order (SQLite → PostgreSQL → NoSQL),
+exposed by `curriculum/path.ts`: `nextIncompleteStep`, `stepAfter` (used by
+"Next lesson", crossing engines), `moduleProgress`. `/learn?lesson=<id>`
+opens a lesson directly (the dashboard's Continue uses it). Module numbers
+come from path order, so titles carry no "Module N:" prefix.
+
+**Streak and progress:** the streak advances only when a lesson is completed
+or a quiz is passed (`recordLearningDay` in `progress-store.ts`), on the
+learner's local calendar day; read it through `currentStreak()`, which
+returns 0 once a day has been missed. Path progress counts built-in lessons
+only (`completedPathLessons`), not code-playground or custom lessons.
+
 **Adding or editing a lesson:** `tests/unit/curriculum/lessons.test.ts`
 fails unless the solution passes, the starter doesn't, and there are at
 least two hints. Add likely alternative answers to its `ACCEPTED` list and

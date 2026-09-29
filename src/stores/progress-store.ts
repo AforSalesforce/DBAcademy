@@ -49,13 +49,14 @@ interface ProgressStore {
   recordQuizScore: (lessonId: string, score: number) => void;
   incrementQueries: () => void;
   addXP: (amount: number) => void;
-  updateStreak: () => void;
+  /** Count today toward the streak. Called when the learner completes a lesson or passes a quiz. */
+  recordLearningDay: () => void;
   getLevel: () => number;
   /** Replace the whole progress object (used by server sync hydration). */
   setProgress: (progress: UserProgress) => void;
 }
 
-const ACHIEVEMENTS: Achievement[] = [
+export const ACHIEVEMENTS: Achievement[] = [
   { id: 'first-query', title: 'First Query', description: 'Run your first SQL query', icon: '🎯' },
   { id: 'ten-queries', title: 'Query Master', description: 'Run 10 queries', icon: '⚡' },
   { id: 'hundred-queries', title: 'SQL Wizard', description: 'Run 100 queries', icon: '🧙' },
@@ -70,6 +71,23 @@ const ACHIEVEMENTS: Achievement[] = [
 ];
 
 const XP_PER_LEVEL = 100;
+
+/** The learner's local calendar day as YYYY-MM-DD (not UTC, so late-evening work counts for today). */
+export function localDay(date: Date = new Date()): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+function previousDay(day: string): string {
+  const [y, m, d] = day.split('-').map(Number);
+  return localDay(new Date(y, m - 1, d - 1));
+}
+
+/** The streak as it stands today: it's broken (0) once a whole day passes without learning. */
+export function currentStreak(progress: Pick<UserProgress, 'streak' | 'lastActiveDate'>, today: string = localDay()): number {
+  const last = progress.lastActiveDate;
+  return last === today || last === previousDay(today) ? progress.streak : 0;
+}
 const LESSON_XP = 25;
 
 /** XP for passing a challenge: 25, minus 5 per hint (at least 10), or 5 after seeing the solution. */
@@ -120,6 +138,7 @@ export const useProgressStore = create<ProgressStore>()(
           return { progress: { ...newProgress, achievements } };
         });
         get().addXP(xp);
+        get().recordLearningDay();
         return xp;
       };
 
@@ -194,6 +213,7 @@ export const useProgressStore = create<ProgressStore>()(
             return { progress: { ...newProgress, achievements } };
           });
           if (firstPass) get().addXP(50);
+        if (score >= 70) get().recordLearningDay();
         },
 
         incrementQueries: () => {
@@ -248,15 +268,14 @@ export const useProgressStore = create<ProgressStore>()(
           });
         },
 
-        updateStreak: () => {
+        recordLearningDay: () => {
           set((state) => {
-            const today = new Date().toISOString().split('T')[0];
+            const today = localDay();
             const lastDate = state.progress.lastActiveDate;
 
             if (lastDate === today) return state;
 
-            const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-            const newStreak = lastDate === yesterday ? state.progress.streak + 1 : 1;
+            const newStreak = lastDate === previousDay(today) ? state.progress.streak + 1 : 1;
 
             const achievements = [...state.progress.achievements];
             if (newStreak >= 3) {

@@ -3,24 +3,25 @@
 import React, { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useProgressStore } from '@/stores/progress-store';
-import { CURRICULUM } from '@/features/learn/curriculum/curriculum';
+import { useProgressStore, currentStreak, ACHIEVEMENTS } from '@/stores/progress-store';
+import {
+  ENGINE_LABEL, TOTAL_PATH_LESSONS, completedPathLessons, moduleProgress, nextIncompleteStep,
+} from '@/features/learn/curriculum/path';
 import { useProfile } from '@/lib/use-profile';
 import { SiteFooter } from '@/components/SiteFooter';
 import { signOut } from '@/features/auth/actions';
 import { joinInstitution } from '@/features/institutions/actions';
 import { useFeatures } from '@/components/FeaturesProvider';
 import {
-  Database, GraduationCap, Trophy, Zap, Flame, Target,
-  BookOpen, ArrowRight, Star, LogOut, Play, CheckCircle, X,
+  Database, GraduationCap, Trophy, Zap, Flame,
+  BookOpen, ArrowRight, Star, LogOut, Play, CheckCircle, X, Lock, Code2,
 } from 'lucide-react';
 
-const TOTAL_LESSONS = CURRICULUM.reduce((sum, m) => sum + m.lessons.length, 0);
 
 function DashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { progress, updateStreak } = useProgressStore();
+  const { progress } = useProgressStore();
   const { profile } = useProfile();
   const { accounts } = useFeatures();
 
@@ -28,9 +29,6 @@ function DashboardContent() {
   const [billingError, setBillingError] = useState('');
   const billingStatus = accounts ? searchParams.get('billing') : null;
 
-  useEffect(() => {
-    updateStreak();
-  }, [updateStreak]);
 
   // Clear the ?billing= param from the URL after reading it (clean UX)
   useEffect(() => {
@@ -87,9 +85,15 @@ function DashboardContent() {
 
   const xpProgress = progress.xp % 100;
   const progressPercent = (xpProgress / 100) * 100;
-  const completionPercent = TOTAL_LESSONS > 0
-    ? Math.round((progress.lessonsCompleted / TOTAL_LESSONS) * 100)
-    : 0;
+  // Path progress counts built-in lessons only (not code-playground or custom ones).
+  const isComplete = (id: string) => Boolean(progress.lessonProgress[id]?.completed);
+  const lessonsDone = completedPathLessons(isComplete);
+  const completionPercent = Math.round((lessonsDone / TOTAL_PATH_LESSONS) * 100);
+  const next = nextIncompleteStep(isComplete);
+  const continueHref = next ? `/learn?lesson=${encodeURIComponent(next.lesson.id)}` : '/learn';
+  const modules = moduleProgress(isComplete);
+  const streak = currentStreak(progress);
+  const unlocked = new Map(progress.achievements.map(a => [a.id, a]));
 
   return (
     <div className="min-h-screen text-white" style={{ background: '#07090F' }}>
@@ -136,7 +140,7 @@ function DashboardContent() {
                 </button>
               )}
               <Link
-                href="/learn"
+                href={continueHref}
                 className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all cursor-pointer"
                 style={{ background: '#00C7BE', color: '#07090F' }}
               >
@@ -209,8 +213,8 @@ function DashboardContent() {
             bgGradient=""
             borderColor=""
             label="Streak"
-            value={`${progress.streak}d`}
-            sub="days in a row"
+            value={`${streak}d`}
+            sub={streak > 0 ? 'days in a row' : 'Finish a lesson today to start one'}
           />
           <StatCard
             icon={<BookOpen className="w-5 h-5" />}
@@ -218,7 +222,7 @@ function DashboardContent() {
             bgGradient=""
             borderColor=""
             label="Lessons"
-            value={`${progress.lessonsCompleted}/${TOTAL_LESSONS}`}
+            value={`${lessonsDone}/${TOTAL_PATH_LESSONS}`}
             sub={`${completionPercent}% complete`}
           />
           <StatCard
@@ -256,66 +260,45 @@ function DashboardContent() {
           </div>
         </div>
 
-        {/* ── Two Column ────────────────────────────────────────────────────────── */}
-        <div className="grid lg:grid-cols-2 gap-6">
-
-          {/* Achievements */}
-          <div className="rounded-2xl p-6" style={{ background: '#0C1018', border: '1px solid rgba(255,255,255,0.06)' }}>
-            <h2 className="font-semibold text-base mb-4 flex items-center gap-2" style={{ color: '#EDF1FA' }}>
-              <Trophy className="w-4 h-4" style={{ color: '#F59E0B' }} />
-              Achievements
-              <span className="ml-auto text-xs font-normal" style={{ color: '#5C6B8A' }}>{progress.achievements.length} unlocked</span>
-            </h2>
-            {progress.achievements.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-10" style={{ color: '#2E3A52' }}>
-                <Target className="w-8 h-8 mb-3 opacity-40" />
-                <p className="text-sm">Start learning to unlock achievements!</p>
-              </div>
+        {/* ── Next up + path ───────────────────────────────────────────────────── */}
+        <div className="grid lg:grid-cols-3 lg:items-start gap-6 mb-6">
+          {/* Next up */}
+          <div className="rounded-2xl p-6 flex flex-col" style={{ background: '#0C1018', border: '1px solid rgba(0,199,190,0.2)' }}>
+            <h2 className="font-semibold text-base mb-4" style={{ color: '#EDF1FA' }}>Next up</h2>
+            {next ? (
+              <>
+                <p className="text-xs mb-1" style={{ color: '#8A97B3' }}>
+                  Module {next.moduleNumber}: {next.module.title} · {ENGINE_LABEL[next.module.engine]}
+                </p>
+                <p className="text-lg font-semibold mb-5" style={{ color: '#EDF1FA' }}>{next.lesson.title}</p>
+                <Link
+                  href={continueHref}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold mb-5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-300"
+                  style={{ background: '#00C7BE', color: '#07090F' }}
+                >
+                  {lessonsDone === 0 ? 'Start the first lesson' : 'Continue'} <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                </Link>
+              </>
             ) : (
-              <div className="grid grid-cols-2 gap-3">
-                {progress.achievements.map((a) => (
-                  <div
-                    key={a.id}
-                    className="flex items-center gap-3 p-3 rounded-xl transition-colors"
-                    style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}
-                  >
-                    <span className="text-xl shrink-0">{a.icon}</span>
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium truncate" style={{ color: '#EDF1FA' }}>{a.title}</div>
-                      <div className="text-xs truncate" style={{ color: '#5C6B8A' }}>{a.description}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <p className="text-sm mb-5" style={{ color: '#B4BED3' }}>
+                You&apos;ve completed all {TOTAL_PATH_LESSONS} lessons. Revisit any of them from the path.
+              </p>
             )}
-          </div>
-
-          {/* Quick Actions */}
-          <div className="rounded-2xl p-6" style={{ background: '#0C1018', border: '1px solid rgba(255,255,255,0.06)' }}>
-            <h2 className="font-semibold text-base mb-4" style={{ color: '#EDF1FA' }}>Quick Actions</h2>
             <div className="space-y-2.5">
-              <QuickLink
-                href="/learn"
-                icon={<BookOpen className="w-5 h-5" style={{ color: '#00C7BE' }} />}
-                iconBg="teal"
-                title="Continue Learning"
-                sub="Pick up where you left off"
-              />
               <QuickLink
                 href="/learn"
                 icon={<Database className="w-5 h-5" style={{ color: '#22C55E' }} />}
                 iconBg="emerald"
-                title="SQL Playground"
-                sub="Free practice with any engine"
+                title="SQL playground"
+                sub="Free practice on any engine"
               />
               <QuickLink
-                href="/learn"
-                icon={<GraduationCap className="w-5 h-5" style={{ color: '#F59E0B' }} />}
+                href="/code"
+                icon={<Code2 className="w-5 h-5" style={{ color: '#F59E0B' }} />}
                 iconBg="amber"
-                title="Take a Quiz"
-                sub="Test your knowledge"
+                title="Code sandbox"
+                sub="JavaScript and Python in the browser"
               />
-
               {/* Join institution */}
               {profile && !profile.institution_id && (
                 <form
@@ -352,6 +335,79 @@ function DashboardContent() {
               )}
             </div>
           </div>
+
+          {/* Your path */}
+          <div className="lg:col-span-2 rounded-2xl p-6" style={{ background: '#0C1018', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <h2 className="font-semibold text-base mb-4 flex items-center gap-2" style={{ color: '#EDF1FA' }}>
+              <BookOpen className="w-4 h-4" style={{ color: '#00C7BE' }} aria-hidden="true" />
+              Your path
+              <span className="ml-auto text-xs font-normal" style={{ color: '#8A97B3' }}>{completionPercent}% complete</span>
+            </h2>
+            <ol className="space-y-1.5">
+              {modules.map(m => {
+                const pct = Math.round((m.done / m.total) * 100);
+                const finished = m.done === m.total;
+                return (
+                  <li key={m.module.id}>
+                    <Link
+                      href={`/learn?lesson=${encodeURIComponent(m.resumeLesson.id)}`}
+                      className="flex items-center gap-3 p-2.5 rounded-xl transition-colors hover:bg-white/[0.03] focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-400"
+                    >
+                      <span
+                        className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+                        style={finished
+                          ? { background: 'rgba(34,197,94,0.15)', color: '#22C55E' }
+                          : { background: 'rgba(255,255,255,0.05)', color: '#B4BED3' }}
+                      >
+                        {finished ? <CheckCircle className="w-4 h-4" aria-label="Complete" /> : m.moduleNumber}
+                      </span>
+                      <span className="flex-1 min-w-0">
+                        <span className="flex items-center gap-2 text-sm font-medium" style={{ color: '#EDF1FA' }}>
+                          <span className="truncate">{m.module.title}</span>
+                          <span className="text-[10px] uppercase tracking-wide shrink-0" style={{ color: '#8A97B3' }}>{ENGINE_LABEL[m.module.engine]}</span>
+                        </span>
+                        <span className="block h-1.5 mt-1.5 rounded-full overflow-hidden" style={{ background: '#1A2235' }}>
+                          <span className="block h-full rounded-full" style={{ width: `${pct}%`, background: finished ? '#22C55E' : '#00C7BE' }} />
+                        </span>
+                      </span>
+                      <span className="text-xs tabular-nums w-10 text-right shrink-0" style={{ color: '#8A97B3' }}>{m.done}/{m.total}</span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ol>
+          </div>
+        </div>
+
+        {/* ── Achievements: unlocked ones, and locked ones as goals ─────────── */}
+        <div className="rounded-2xl p-6" style={{ background: '#0C1018', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <h2 className="font-semibold text-base mb-4 flex items-center gap-2" style={{ color: '#EDF1FA' }}>
+            <Trophy className="w-4 h-4" style={{ color: '#F59E0B' }} aria-hidden="true" />
+            Achievements
+            <span className="ml-auto text-xs font-normal" style={{ color: '#8A97B3' }}>{unlocked.size} of {ACHIEVEMENTS.length} unlocked</span>
+          </h2>
+          <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {ACHIEVEMENTS.map(a => {
+              const got = unlocked.get(a.id);
+              return (
+                <li
+                  key={a.id}
+                  className="flex items-center gap-3 p-3 rounded-xl"
+                  style={{
+                    background: got ? 'rgba(245,158,11,0.06)' : 'rgba(255,255,255,0.02)',
+                    border: `1px solid ${got ? 'rgba(245,158,11,0.2)' : 'rgba(255,255,255,0.05)'}`,
+                  }}
+                >
+                  <span className={`text-xl shrink-0 ${got ? '' : 'grayscale opacity-40'}`} aria-hidden="true">{a.icon}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-medium truncate" style={{ color: got ? '#EDF1FA' : '#B4BED3' }}>{a.title}</div>
+                    <div className="text-xs truncate" style={{ color: '#8A97B3' }}>{a.description}</div>
+                  </div>
+                  {!got && <Lock className="w-3.5 h-3.5 shrink-0" style={{ color: '#8A97B3' }} aria-label="Locked" />}
+                </li>
+              );
+            })}
+          </ul>
         </div>
       </main>
       <SiteFooter />

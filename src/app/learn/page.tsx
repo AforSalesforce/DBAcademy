@@ -13,6 +13,8 @@ import { RunHistory } from '@/features/learn/components/RunHistory';
 import { NotesDrawer } from '@/features/learn/components/NotesDrawer';
 import { SchemaDesigner } from '@/features/learn/components/SchemaDesigner';
 import { ChallengeCard } from '@/features/learn/components/ChallengeCard';
+import { LearnHome } from '@/features/learn/components/LearnHome';
+import { ENGINE_LABEL, PathStep, findStep, nextIncompleteStep, stepAfter } from '@/features/learn/curriculum/path';
 import { gradeAttempt, Grade } from '@/features/learn/grading/grade';
 import { explainError } from '@/features/learn/grading/explain-error';
 import { loadDraft, saveDraft } from '@/features/learn/lesson-drafts';
@@ -83,6 +85,15 @@ export default function LearnPage() {
   const [activeLesson, setActiveLesson] = useState<LessonContentType | null>(null);
   const [activeLessonModuleId, setActiveLessonModuleId] = useState<string | null>(null);
   const [userLessons, setUserLessons] = useState<Record<string, string>>({});
+  // The welcome / continue panel shows when no lesson is open, until the
+  // learner closes it for this session to use the playground.
+  const [homeDismissed, setHomeDismissed] = useState(() => {
+    try { return typeof window !== 'undefined' && sessionStorage.getItem('dbacademy:home-dismissed') === '1'; } catch { return false; }
+  });
+  const dismissHome = () => {
+    setHomeDismissed(true);
+    try { sessionStorage.setItem('dbacademy:home-dismissed', '1'); } catch { /* ignore */ }
+  };
   const [challengeUi, setChallengeUi] = useState<{ grade: Grade | null; checking: boolean; xpAwarded: number | null }>(
     { grade: null, checking: false, xpAwarded: null },
   );
@@ -101,7 +112,7 @@ export default function LearnPage() {
   const [saveQueryTitle, setSaveQueryTitle] = useState('');
 
   // ── Stores ─────────────────────────────────────────────────────────────────
-  const { updateStreak, completeChallenge } = useProgressStore();
+  const { completeChallenge } = useProgressStore();
   const lessonProgress = useProgressStore(s => s.progress.lessonProgress);
   const { profile } = useProfile();
   // Plan limits only exist alongside paid plans. With accounts/payments off,
@@ -114,7 +125,6 @@ export default function LearnPage() {
 
   // ── Hydrate all stores on mount ────────────────────────────────────────────
   useEffect(() => {
-    updateStreak();
     projectStore.hydrate();
     savedQueriesStore.hydrate();
     runHistoryStore.hydrate();
@@ -242,6 +252,8 @@ export default function LearnPage() {
   // ── Run query (wraps the workspace hook to also drive the results tab) ────
 
   const runQuery = (overrideQuery?: string) => {
+    // While an engine is switching, the old one is still attached: don't run on it.
+    if (workspace.loading) return Promise.resolve();
     setResultsTab('results');
     return workspace.runQuery(overrideQuery);
   };
@@ -398,7 +410,7 @@ export default function LearnPage() {
 
   const checkChallenge = async () => {
     const challenge = activeLesson?.challenge;
-    if (!activeLesson || !challenge || !activeLessonModuleId || !lessonEngine) return;
+    if (!activeLesson || !challenge || !activeLessonModuleId || !lessonEngine || workspace.loading) return;
     if (lessonEngine !== 'sqlite' && lessonEngine !== 'postgres' && lessonEngine !== 'nosql') return;
     const lessonId = activeLesson.id;
     const attempt = workspace.query;
@@ -412,28 +424,58 @@ export default function LearnPage() {
     setChallengeUi({ grade, checking: false, xpAwarded });
   };
 
-  /** The lesson after the open one, following the curriculum order for its engine. */
-  const nextLesson = (() => {
-    if (!activeLesson || !lessonEngine) return null;
-    const ordered = CURRICULUM.filter(m => m.engine === lessonEngine)
-      .flatMap(m => m.lessons.map(l => ({ lesson: l, moduleId: m.id })));
-    const i = ordered.findIndex(x => x.lesson.id === activeLesson.id);
-    return i >= 0 && i < ordered.length - 1 ? ordered[i + 1] : null;
-  })();
+  /** The lesson after the open one in the learning path (it may switch engine). */
+  const nextLesson = activeLesson ? stepAfter(activeLesson.id) : null;
+
+  const openStep = (step: PathStep) =>
+    handleSelectLesson({ id: step.lesson.id, title: step.lesson.title, completed: false }, step.module.id);
+
+  /** Switch to an engine's own playground (closing a lesson for another engine). */
+  const switchEngine = (engine: EngineType) => {
+    if (engine === dbType) return;
+    const playgroundId = DEFAULT_PROJECT_IDS[engine];
+    const playground = projectStore.projects.find(p => p.id === playgroundId);
+    if (playground) handleSelectProject(playground);
+  };
+
+  // ── Deep link: /learn?lesson=<id> opens that lesson (e.g. the dashboard's
+  // "Continue"). Runs once, after the first engine has loaded.
+  const deepLinkHandled = useRef(false);
+  useEffect(() => {
+    if (workspace.loading || deepLinkHandled.current) return;
+    deepLinkHandled.current = true;
+    const url = new URL(window.location.href);
+    const step = findStep(url.searchParams.get('lesson') ?? '');
+    if (!step) return;
+    url.searchParams.delete('lesson');
+    window.history.replaceState({}, '', url.toString());
+    // Opening a lesson named in the URL is syncing with something outside
+    // React, which is what effects are for.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    openStep(step);
+  }, [workspace.loading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const explainForEngine = (message: string) => explainError(message, { engine: dbType, tables: workspace.schema });
 
-  const activeModules = modules
-    .filter(m => m.engine === dbType)
-    .map(m => ({
+  // One path through every module, whatever engine is open; opening a
+  // lesson switches engine for you.
+  const pathModules = modules.map(m => {
+    const index = CURRICULUM.findIndex(c => c.id === m.id);
+    return {
       ...m,
+      number: index >= 0 ? index + 1 : undefined,
       lessons: m.lessons.map(l => ({ ...l, completed: Boolean(lessonProgress[l.id]?.completed) })),
-    }));
+    };
+  });
+  const focusModuleId = activeLessonModuleId
+    ?? nextIncompleteStep(id => Boolean(lessonProgress[id]?.completed))?.module.id;
   const activeProject = projectStore.getActiveProject();
 
-  // ── Loading screen ─────────────────────────────────────────────────────────
+  // ── Loading screen (first load only) ──────────────────────────────────────
+  // Later engine switches keep the layout and show an overlay on the editor
+  // instead, so moving between lessons doesn't blank the page.
 
-  if (workspace.loading) {
+  if (workspace.loading && !workspace.db) {
     return (
       <div className="flex flex-col items-center justify-center h-screen gap-4" style={{ background: '#07090F', color: '#EDF1FA' }}>
         <div className="relative w-10 h-10">
@@ -672,7 +714,8 @@ export default function LearnPage() {
               <div className="flex-1 overflow-y-auto min-h-[150px]">
                 {activeTab === 'curriculum' && (
                   <Sidebar
-                    modules={activeModules}
+                    modules={pathModules}
+                    focusModuleId={focusModuleId}
                     activeLessonId={activeLesson?.id}
                     onAddModule={handleAddModule}
                     onAddLesson={handleAddLesson}
@@ -720,8 +763,8 @@ export default function LearnPage() {
           )}
         </div>
 
-        {/* ── Middle Panel: Lesson ────────────────────────────────────────── */}
-        {activeLesson && (
+        {/* ── Middle Panel: Lesson, or the welcome / continue panel ─────────── */}
+        {activeLesson ? (
           <div className="flex-1 w-full md:w-auto min-w-0 md:min-w-[240px] md:overflow-auto" style={{ background: '#0C1018', borderRight: '1px solid rgba(255,255,255,0.06)' }}>
             <LessonView
               key={activeLesson.id}
@@ -747,9 +790,7 @@ export default function LearnPage() {
                     }
                   }}
                   onUseSolution={sql => workspace.setQuery(sql)}
-                  onNextLesson={nextLesson
-                    ? () => handleSelectLesson({ id: nextLesson.lesson.id, title: nextLesson.lesson.title, completed: false }, nextLesson.moduleId)
-                    : undefined}
+                  onNextLesson={nextLesson ? () => openStep(nextLesson) : undefined}
                   explain={explainForEngine}
                 />
               )}
@@ -760,6 +801,10 @@ export default function LearnPage() {
                   : undefined
               }
             />
+          </div>
+        ) : !homeDismissed && (
+          <div className="flex-1 w-full md:w-auto min-w-0 md:min-w-[240px] md:overflow-auto" style={{ background: '#0C1018', borderRight: '1px solid rgba(255,255,255,0.06)' }}>
+            <LearnHome onStart={openStep} onDismiss={dismissHome} />
           </div>
         )}
 
@@ -788,18 +833,31 @@ export default function LearnPage() {
             {/* Left: file-tab style label + engine badge */}
             <div className="flex items-center gap-2">
               {/* Pseudo file-tab */}
-              <div className="flex items-center gap-1.5 px-3 h-10 border-b-2 text-xs font-medium" style={{ borderColor: '#00C7BE', color: '#EDF1FA' }}>
+              <div className="hidden md:flex items-center gap-1.5 px-3 h-10 border-b-2 text-xs font-medium" style={{ borderColor: '#00C7BE', color: '#EDF1FA' }}>
                 <div className="w-2 h-2 rounded-full" style={{ background: dbType === 'postgres' ? '#00C7BE' : dbType === 'nosql' ? '#22C55E' : '#F59E0B' }} />
                 {dbType === 'nosql' ? 'script.js' : 'query.sql'}
               </div>
-              {/* Engine badge */}
-              <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide" style={{
-                background: dbType === 'postgres' ? 'rgba(0,199,190,0.1)' : dbType === 'nosql' ? 'rgba(34,197,94,0.1)' : 'rgba(245,158,11,0.1)',
-                color: dbType === 'postgres' ? '#00C7BE' : dbType === 'nosql' ? '#22C55E' : '#F59E0B',
-                border: `1px solid ${dbType === 'postgres' ? 'rgba(0,199,190,0.2)' : dbType === 'nosql' ? 'rgba(34,197,94,0.2)' : 'rgba(245,158,11,0.2)'}`,
-              }}>
-                {dbType === 'postgres' ? 'PostgreSQL' : dbType === 'nosql' ? 'NoSQL' : 'SQLite'}
-              </span>
+              {/* Engine switcher */}
+              <div role="group" aria-label="Database engine" className="flex items-center rounded-md p-0.5" style={{ background: '#07090F', border: '1px solid rgba(255,255,255,0.08)' }}>
+                {(['sqlite', 'postgres', 'nosql'] as const).map(engine => {
+                  const active = dbType === engine;
+                  const color = engine === 'postgres' ? '#00C7BE' : engine === 'nosql' ? '#22C55E' : '#F59E0B';
+                  return (
+                    <button
+                      key={engine}
+                      onClick={() => switchEngine(engine)}
+                      aria-pressed={active}
+                      title={active ? `Using ${ENGINE_LABEL[engine]}` : `Switch to the ${ENGINE_LABEL[engine]} playground`}
+                      className="px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide transition-colors cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-400"
+                      style={active
+                        ? { color, background: `${color}1A`, boxShadow: `inset 0 0 0 1px ${color}40` }
+                        : { color: '#8A97B3' }}
+                    >
+                      {engine === 'postgres' ? 'Postgres' : ENGINE_LABEL[engine]}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Right: Save + Check + Run */}
@@ -807,7 +865,7 @@ export default function LearnPage() {
               {activeLesson?.challenge && (
                 <button
                   onClick={checkChallenge}
-                  disabled={challengeUi.checking}
+                  disabled={challengeUi.checking || workspace.loading}
                   title="Check your answer to this lesson's challenge"
                   className="flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-semibold transition-colors cursor-pointer disabled:opacity-60"
                   style={{ color: '#00C7BE', background: 'rgba(0,199,190,0.08)', border: '1px solid rgba(0,199,190,0.3)' }}
@@ -819,14 +877,15 @@ export default function LearnPage() {
               <button
                 onClick={() => openSaveQueryModal(workspace.query, dbType)}
                 title="Save query (⌘S)"
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-medium transition-colors cursor-pointer"
+                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-medium transition-colors cursor-pointer"
                 style={{ color: '#5C6B8A', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
               >
                 Save <kbd className="text-[9px] px-1 py-0.5 rounded" style={{ background: 'rgba(255,255,255,0.06)', color: '#2E3A52' }}>⌘S</kbd>
               </button>
               <button
                 onClick={() => runQuery()}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-all active:scale-95 cursor-pointer"
+                disabled={workspace.loading}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-all active:scale-95 cursor-pointer disabled:opacity-50"
                 style={{ background: '#00C7BE', color: '#07090F', boxShadow: '0 0 12px rgba(0,199,190,0.2)' }}
               >
                 <Play style={{ width: 12, height: 12 }} /> Run <kbd className="text-[9px] opacity-60">⌘↵</kbd>
@@ -836,6 +895,12 @@ export default function LearnPage() {
 
           {/* ── Monaco Editor ──────────────────────────────────────────────── */}
           <div className="flex-1 relative h-[200px] md:h-auto" style={{ minHeight: 120 }}>
+            {workspace.loading && (
+              <div className="absolute inset-0 z-10 flex items-center justify-center gap-3" style={{ background: 'rgba(7,9,15,0.75)' }} role="status" aria-live="polite">
+                <div className="w-5 h-5 rounded-full border-2 animate-spin motion-reduce:animate-none" style={{ borderColor: 'rgba(0,199,190,0.2)', borderTopColor: '#00C7BE' }} />
+                <span className="text-sm" style={{ color: '#B4BED3' }}>Preparing the {ENGINE_LABEL[dbType]} database…</span>
+              </div>
+            )}
             <SqlEditor
               value={workspace.query}
               onChange={val => workspace.setQuery(val || '')}

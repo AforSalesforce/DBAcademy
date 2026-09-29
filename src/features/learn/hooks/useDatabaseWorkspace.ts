@@ -125,14 +125,9 @@ export function useDatabaseWorkspace(dbType: EngineType, activeProjectId: string
         const schemaData = await engine.getSchema();
         setSchema(schemaData);
 
-        const saved = loadEditor(activeProjectId);
-        setQuery(prev => {
-          if (saved !== null) return saved;
-          if (!prev || prev === (dbType !== 'nosql' ? DEFAULT_QUERY_NOSQL : DEFAULT_QUERY_SQL)) {
-            return dbType === 'nosql' ? DEFAULT_QUERY_NOSQL : DEFAULT_QUERY_SQL;
-          }
-          return prev;
-        });
+        // This project's own saved text, else its engine's starter query —
+        // never the previous engine's text (SQL in a NoSQL editor).
+        setQuery(loadEditor(activeProjectId) ?? (dbType === 'nosql' ? DEFAULT_QUERY_NOSQL : DEFAULT_QUERY_SQL));
         editorProjectRef.current = activeProjectId;
 
         // Restoring may have filled in newer sample data; save it so the

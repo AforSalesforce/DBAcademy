@@ -21,7 +21,15 @@ export interface Module {
     engine?: EngineType;
     /** Part of the shipped curriculum: can't be deleted. */
     builtIn?: boolean;
+    /** Position in the learning path (built-in modules only). */
+    number?: number;
 }
+
+const ENGINE_BADGE: Partial<Record<EngineType, { label: string; color: string }>> = {
+    sqlite: { label: 'SQLite', color: '#F59E0B' },
+    postgres: { label: 'Postgres', color: '#00C7BE' },
+    nosql: { label: 'NoSQL', color: '#22C55E' },
+};
 
 interface SidebarProps {
     modules: Module[];
@@ -31,16 +39,30 @@ interface SidebarProps {
     onSelectLesson: (lesson: Lesson, moduleId: string) => void;
     onRemoveModule?: (moduleId: string) => void;
     onRemoveLesson?: (moduleId: string, lessonId: string) => void;
+    /** Module to show open (the one with the current or next lesson); others start collapsed. */
+    focusModuleId?: string;
 }
 
 export function cn(...inputs: (string | undefined | null | false)[]) {
     return twMerge(clsx(inputs));
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ modules, activeLessonId, onAddModule, onAddLesson, onSelectLesson, onRemoveModule, onRemoveLesson }) => {
+/** Enter / Space activate a non-button element that acts as one. */
+function activateOnKey(e: React.KeyboardEvent, action: () => void) {
+    if (e.target !== e.currentTarget) return; // let nested buttons handle their own keys
+    if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        action();
+    }
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ modules, activeLessonId, onAddModule, onAddLesson, onSelectLesson, onRemoveModule, onRemoveLesson, focusModuleId }) => {
     const [isAddingModule, setIsAddingModule] = useState(false);
     const [newModuleTitle, setNewModuleTitle] = useState('');
-    const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set(modules.map(m => m.id)));
+    // Modules the learner opened or closed by hand; everything else follows
+    // the default (only the focus module open, or all open without one).
+    const [toggled, setToggled] = useState<Set<string>>(new Set());
+    const isExpanded = (id: string) => (!focusModuleId || id === focusModuleId) !== toggled.has(id);
     const [hoveredModuleId, setHoveredModuleId] = useState<string | null>(null);
     const [hoveredLessonId, setHoveredLessonId] = useState<string | null>(null);
 
@@ -49,13 +71,10 @@ const Sidebar: React.FC<SidebarProps> = ({ modules, activeLessonId, onAddModule,
     const [newLessonTitle, setNewLessonTitle] = useState('');
 
     const toggleModule = (id: string) => {
-        const newSet = new Set(expandedModules);
-        if (newSet.has(id)) {
-            newSet.delete(id);
-        } else {
-            newSet.add(id);
-        }
-        setExpandedModules(newSet);
+        const next = new Set(toggled);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        setToggled(next);
     };
 
     const handleSubmitModule = (e: React.FormEvent) => {
@@ -82,19 +101,26 @@ const Sidebar: React.FC<SidebarProps> = ({ modules, activeLessonId, onAddModule,
                 {modules.map(module => (
                     <div key={module.id}>
                         <div
-                            className="flex items-center justify-between mb-2 px-2 py-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors"
+                            className="flex items-center justify-between mb-2 px-2 py-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-400"
                             onClick={() => toggleModule(module.id)}
+                            onKeyDown={e => activateOnKey(e, () => toggleModule(module.id))}
+                            role="button"
+                            tabIndex={0}
+                            aria-expanded={isExpanded(module.id)}
                             onMouseEnter={() => setHoveredModuleId(module.id)}
                             onMouseLeave={() => setHoveredModuleId(null)}
                         >
                             <div className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
-                                {expandedModules.has(module.id) ? (
+                                {isExpanded(module.id) ? (
                                     <ChevronDown size={16} />
                                 ) : (
                                     <ChevronRight size={16} />
                                 )}
-                                <span className="uppercase tracking-wider text-xs">{module.title}</span>
+                                <span className="uppercase tracking-wider text-xs">
+                                    {module.number ? `${module.number}. ` : ''}{module.title}
+                                </span>
                             </div>
+                            <ModuleMeta module={module} />
                             <div className={cn(
                                 "flex items-center gap-0.5 transition-opacity focus-within:opacity-100",
                                 hoveredModuleId === module.id ? "opacity-100" : "opacity-0"
@@ -103,7 +129,7 @@ const Sidebar: React.FC<SidebarProps> = ({ modules, activeLessonId, onAddModule,
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         setAddingLessonToModuleId(module.id);
-                                        if (!expandedModules.has(module.id)) toggleModule(module.id);
+                                        if (!isExpanded(module.id)) toggleModule(module.id);
                                     }}
                                     className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors"
                                     title="Add Lesson"
@@ -130,7 +156,7 @@ const Sidebar: React.FC<SidebarProps> = ({ modules, activeLessonId, onAddModule,
                             </div>
                         </div>
 
-                        {expandedModules.has(module.id) && (
+                        {isExpanded(module.id) && (
                             <div className="space-y-1 ml-2 pl-2 border-l border-slate-200 dark:border-slate-800">
                                 {module.lessons.map(lesson => {
                                     const isActive = activeLessonId === lesson.id;
@@ -139,10 +165,14 @@ const Sidebar: React.FC<SidebarProps> = ({ modules, activeLessonId, onAddModule,
                                         <div
                                             key={lesson.id}
                                             onClick={() => onSelectLesson(lesson, module.id)}
+                                            onKeyDown={e => activateOnKey(e, () => onSelectLesson(lesson, module.id))}
+                                            role="button"
+                                            tabIndex={0}
+                                            aria-current={isActive ? 'true' : undefined}
                                             onMouseEnter={() => setHoveredLessonId(lesson.id)}
                                             onMouseLeave={() => setHoveredLessonId(null)}
                                             className={cn(
-                                                "flex items-center gap-3 px-3 py-2 text-sm rounded-md cursor-pointer transition-all",
+                                                "flex items-center gap-3 px-3 py-2 text-sm rounded-md cursor-pointer transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-400",
                                                 isActive
                                                     ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 font-medium"
                                                     : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
@@ -244,6 +274,34 @@ const Sidebar: React.FC<SidebarProps> = ({ modules, activeLessonId, onAddModule,
             )}
         </div>
     )
+}
+
+/** Engine badge and "2/4" progress on a module header. */
+function ModuleMeta({ module }: { module: Module }) {
+    const badge = module.engine ? ENGINE_BADGE[module.engine] : undefined;
+    const done = module.lessons.filter(l => l.completed).length;
+    const total = module.lessons.length;
+    return (
+        <div className="flex items-center gap-2 ml-auto mr-1 shrink-0">
+            {badge && (
+                <span
+                    className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded"
+                    style={{ color: badge.color, background: `${badge.color}14`, border: `1px solid ${badge.color}33` }}
+                >
+                    {badge.label}
+                </span>
+            )}
+            {total > 0 && (
+                <span
+                    className="text-[11px] tabular-nums"
+                    style={{ color: done === total ? '#22C55E' : '#8A97B3' }}
+                    aria-label={`${done} of ${total} lessons complete`}
+                >
+                    {done}/{total}
+                </span>
+            )}
+        </div>
+    );
 }
 
 export default Sidebar;
