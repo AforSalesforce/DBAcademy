@@ -15,7 +15,23 @@ import { useFeatures } from '@/components/FeaturesProvider';
 import {
   Database, GraduationCap, Trophy, Zap, Flame,
   BookOpen, ArrowRight, Star, LogOut, Play, CheckCircle, X, Lock, Code2,
+  Wand2, BadgeCheck, Sparkles, Gem, Crown, type LucideIcon,
 } from 'lucide-react';
+
+/** One icon per achievement (the stored emoji is ignored: no emoji as UI icons). */
+const ACHIEVEMENT_ICONS: Record<string, LucideIcon> = {
+  'first-query': Zap,
+  'ten-queries': Zap,
+  'hundred-queries': Wand2,
+  'first-lesson': BookOpen,
+  'five-lessons': GraduationCap,
+  'perfect-quiz': BadgeCheck,
+  'streak-3': Flame,
+  'streak-7': Flame,
+  'streak-30': Crown,
+  'level-5': Sparkles,
+  'level-10': Gem,
+};
 
 
 function DashboardContent() {
@@ -120,7 +136,7 @@ function DashboardContent() {
 
             <div className="flex items-center gap-3">
               {profile && (
-                <span className="hidden sm:inline-flex items-center gap-2 text-sm" style={{ color: '#5C6B8A' }}>
+                <span className="hidden sm:inline-flex items-center gap-2 text-sm" style={{ color: '#8A97B3' }}>
                   {profile.name || profile.email}
                   <span className="text-xs px-2 py-0.5 rounded-full uppercase font-semibold" style={{ background: 'rgba(0,199,190,0.1)', color: '#00C7BE', border: '1px solid rgba(0,199,190,0.2)' }}>
                     {profile.plan}
@@ -132,7 +148,7 @@ function DashboardContent() {
                   onClick={handleManageBilling}
                   disabled={billingLoading}
                   className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-sm transition-colors cursor-pointer rounded-lg disabled:opacity-60"
-                  style={{ color: '#5C6B8A', border: '1px solid rgba(255,255,255,0.08)' }}
+                  style={{ color: '#8A97B3', border: '1px solid rgba(255,255,255,0.08)' }}
                 >
                   {billingLoading ? (
                     <><div className="w-3.5 h-3.5 rounded-full border-2 border-current/30 border-t-current animate-spin" /> Opening…</>
@@ -149,7 +165,7 @@ function DashboardContent() {
               {profile && (
                 <button
                   onClick={handleSignOut}
-                  className="p-2 text-slate-500 hover:text-white hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+                  className="p-2 text-muted hover:text-ink hover:bg-card rounded-lg transition-colors cursor-pointer"
                   title="Sign out"
                 >
                   <LogOut className="w-4 h-4" />
@@ -168,7 +184,7 @@ function DashboardContent() {
             <CheckCircle className="w-5 h-5 shrink-0" style={{ color: '#22C55E' }} />
             <div>
               <p className="font-semibold text-sm" style={{ color: '#22C55E' }}>Subscription activated!</p>
-              <p className="text-xs mt-0.5" style={{ color: '#5C6B8A' }}>Your plan has been upgraded. All features are now unlocked.</p>
+              <p className="text-xs mt-0.5" style={{ color: '#8A97B3' }}>Your plan has been upgraded. All features are now unlocked.</p>
             </div>
           </div>
         )}
@@ -177,7 +193,7 @@ function DashboardContent() {
             <X className="w-5 h-5 shrink-0" style={{ color: '#F59E0B' }} />
             <div>
               <p className="font-semibold text-sm" style={{ color: '#F59E0B' }}>Checkout cancelled</p>
-              <p className="text-xs mt-0.5" style={{ color: '#5C6B8A' }}>No charges were made. You can upgrade anytime from the <Link href="/pricing" className="underline">pricing page</Link>.</p>
+              <p className="text-xs mt-0.5" style={{ color: '#8A97B3' }}>No charges were made. You can upgrade anytime from the <Link href="/pricing" className="underline">pricing page</Link>.</p>
             </div>
           </div>
         )}
@@ -193,7 +209,7 @@ function DashboardContent() {
           <h1 className="text-3xl font-bold mb-1 tracking-tight heading-lg" style={{ color: '#EDF1FA' }}>
             {profile?.name ? `Welcome back, ${profile.name.split(' ')[0]}` : 'Your Dashboard'}
           </h1>
-          <p style={{ color: '#5C6B8A' }}>Track your progress and keep the streak alive.</p>
+          <p style={{ color: '#8A97B3' }}>Track your progress and keep the streak alive.</p>
         </div>
 
         {/* ── Stat Cards ────────────────────────────────────────────────────────── */}
@@ -245,10 +261,10 @@ function DashboardContent() {
               </div>
               <div>
                 <div className="font-semibold text-sm" style={{ color: '#EDF1FA' }}>Level {progress.level}</div>
-                <div className="text-xs" style={{ color: '#5C6B8A' }}>{100 - xpProgress} XP to next level</div>
+                <div className="text-xs" style={{ color: '#8A97B3' }}>{100 - xpProgress} XP to next level</div>
               </div>
             </div>
-            <span className="text-sm font-medium" style={{ color: '#5C6B8A' }}>{progress.xp} total XP</span>
+            <span className="text-sm font-medium" style={{ color: '#8A97B3' }}>{progress.xp} total XP</span>
           </div>
           <div className="w-full rounded-full h-2.5 overflow-hidden" style={{ background: '#1A2235' }}>
             <div
@@ -307,7 +323,7 @@ function DashboardContent() {
                   style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}
                 >
                   <div className="font-medium text-sm mb-1" style={{ color: '#EDF1FA' }}>Join your class</div>
-                  <div className="text-xs mb-3" style={{ color: '#5C6B8A' }}>
+                  <div className="text-xs mb-3" style={{ color: '#8A97B3' }}>
                     Have an invite code from your school or company?
                   </div>
                   <div className="flex gap-2">
@@ -398,7 +414,20 @@ function DashboardContent() {
                     border: `1px solid ${got ? 'rgba(245,158,11,0.2)' : 'rgba(255,255,255,0.05)'}`,
                   }}
                 >
-                  <span className={`text-xl shrink-0 ${got ? '' : 'grayscale opacity-40'}`} aria-hidden="true">{a.icon}</span>
+                  {(() => {
+                    const Icon = ACHIEVEMENT_ICONS[a.id] ?? Trophy;
+                    return (
+                      <span
+                        className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+                        style={got
+                          ? { background: 'rgba(245,158,11,0.12)', color: '#F59E0B' }
+                          : { background: 'rgba(255,255,255,0.04)', color: '#7A87A5' }}
+                        aria-hidden="true"
+                      >
+                        <Icon className="w-4 h-4" />
+                      </span>
+                    );
+                  })()}
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-medium truncate" style={{ color: got ? '#EDF1FA' : '#B4BED3' }}>{a.title}</div>
                     <div className="text-xs truncate" style={{ color: '#8A97B3' }}>{a.description}</div>
@@ -442,10 +471,10 @@ function StatCard({
     <div className="rounded-2xl p-4" style={{ background: colors.bg, border: `1px solid ${colors.border}` }}>
       <div className="flex items-center gap-2 mb-3" style={{ color: colors.text }}>
         {icon}
-        <span className="text-xs uppercase tracking-wide font-semibold" style={{ color: '#5C6B8A' }}>{label}</span>
+        <span className="text-xs uppercase tracking-wide font-semibold" style={{ color: '#8A97B3' }}>{label}</span>
       </div>
       <div className="text-2xl font-bold tracking-tight font-display" style={{ color: '#EDF1FA' }}>{value}</div>
-      <div className="text-xs mt-1" style={{ color: '#5C6B8A' }}>{sub}</div>
+      <div className="text-xs mt-1" style={{ color: '#8A97B3' }}>{sub}</div>
     </div>
   );
 }
@@ -481,10 +510,10 @@ function QuickLink({
         </div>
         <div>
           <div className="font-medium text-sm" style={{ color: '#EDF1FA' }}>{title}</div>
-          <div className="text-xs" style={{ color: '#5C6B8A' }}>{sub}</div>
+          <div className="text-xs" style={{ color: '#8A97B3' }}>{sub}</div>
         </div>
       </div>
-      <ArrowRight className="w-4 h-4 shrink-0" style={{ color: '#2E3A52' }} />
+      <ArrowRight className="w-4 h-4 shrink-0" style={{ color: '#7A87A5' }} />
     </Link>
   );
 }

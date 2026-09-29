@@ -40,9 +40,9 @@ export function SavedQueriesPanel({ activeEngine, activeProjectId, onLoad, onRun
 
   if (engineQueries.length === 0) {
     return (
-      <div className="p-4 text-center text-sm text-slate-400 dark:text-slate-500">
+      <div className="p-4 text-center text-sm text-faint">
         <p>No saved queries yet.</p>
-        <p className="mt-1 text-xs">Press <kbd className="px-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">Cmd+S</kbd> in the editor to save.</p>
+        <p className="mt-1 text-xs">Press <kbd className="px-1 rounded bg-card text-ink">Cmd+S</kbd> in the editor to save.</p>
       </div>
     );
   }
@@ -119,14 +119,14 @@ function Section({
   if (queries.length === 0) return null;
   return (
     <div>
-      <p className="px-2 pb-1 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+      <p className="px-2 pb-1 text-[10px] font-bold uppercase tracking-widest text-faint">
         {title}
       </p>
       <ul className="flex flex-col gap-0.5">
         {queries.map(q => (
           <li
             key={q.id}
-            className="group flex items-center gap-1 px-2 py-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+            className="group flex items-center gap-1 px-2 py-1.5 rounded-md hover:bg-card cursor-pointer"
             onClick={() => onLoad(q.body)}
           >
             {editingId === q.id ? (
@@ -139,10 +139,10 @@ function Section({
                   if (e.key === 'Escape') onCancelEdit();
                 }}
                 onClick={e => e.stopPropagation()}
-                className="flex-1 text-sm bg-white dark:bg-slate-700 border border-blue-400 rounded px-1 py-0.5 focus:outline-none"
+                className="flex-1 text-sm bg-card-hover border border-accent rounded px-1 py-0.5 focus:outline-none"
               />
             ) : (
-              <span className="flex-1 text-sm truncate text-slate-700 dark:text-slate-200">
+              <span className="flex-1 text-sm truncate text-ink">
                 {q.title}
               </span>
             )}
@@ -150,17 +150,17 @@ function Section({
             <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
               {editingId === q.id ? (
                 <>
-                  <IconBtn title="Save" onClick={onCommitEdit}><Check className="w-3 h-3 text-green-500" /></IconBtn>
-                  <IconBtn title="Cancel" onClick={onCancelEdit}><X className="w-3 h-3 text-slate-400" /></IconBtn>
+                  <IconBtn title="Save" onClick={onCommitEdit}><Check className="w-3 h-3 text-success" /></IconBtn>
+                  <IconBtn title="Cancel" onClick={onCancelEdit}><X className="w-3 h-3 text-muted" /></IconBtn>
                 </>
               ) : (
                 <>
-                  <IconBtn title="Run" onClick={() => onRun(q.body)}><Play className="w-3 h-3 text-blue-500" /></IconBtn>
+                  <IconBtn title="Run" onClick={() => onRun(q.body)}><Play className="w-3 h-3 text-accent" /></IconBtn>
                   <IconBtn title={q.favorite ? 'Unfavorite' : 'Favorite'} onClick={() => onFavorite(q.id)}>
-                    <Star className={`w-3 h-3 ${q.favorite ? 'fill-yellow-400 text-yellow-400' : 'text-slate-400'}`} />
+                    <Star className={`w-3 h-3 ${q.favorite ? 'fill-yellow-400 text-warm' : 'text-muted'}`} />
                   </IconBtn>
-                  <IconBtn title="Rename" onClick={() => onStartEdit(q)}><Pencil className="w-3 h-3 text-slate-400" /></IconBtn>
-                  <IconBtn title="Delete" onClick={() => onDelete(q.id)}><Trash2 className="w-3 h-3 text-red-400" /></IconBtn>
+                  <IconBtn title="Rename" onClick={() => onStartEdit(q)}><Pencil className="w-3 h-3 text-muted" /></IconBtn>
+                  <IconBtn title="Delete" onClick={() => onDelete(q.id)}><Trash2 className="w-3 h-3 text-danger" /></IconBtn>
                 </>
               )}
             </div>
@@ -176,7 +176,7 @@ function IconBtn({ title, onClick, children }: { title: string; onClick: () => v
     <button
       title={title}
       onClick={onClick}
-      className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+      className="p-1 rounded hover:bg-card-hover transition-colors"
     >
       {children}
     </button>

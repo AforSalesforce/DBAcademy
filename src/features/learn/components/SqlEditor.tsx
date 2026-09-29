@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef } from 'react';
-import Editor, { OnMount } from '@monaco-editor/react';
+import Editor, { BeforeMount, OnMount } from '@monaco-editor/react';
 
 interface SqlEditorProps {
     value: string;
@@ -9,6 +9,25 @@ interface SqlEditorProps {
     onRun: () => void;
     language?: string;
 }
+
+/**
+ * vs-dark, on the app's own surface colour, with comments bright enough for
+ * WCAG AA (vs-dark's #608B4E on #1E1E1E is only 4.2:1).
+ */
+const defineTheme: BeforeMount = monaco => {
+    monaco.editor.defineTheme('dbacademy-dark', {
+        base: 'vs-dark',
+        inherit: true,
+        rules: [{ token: 'comment', foreground: '6A9955' }],
+        colors: {
+            'editor.background': '#0C1018',
+            'editor.lineHighlightBackground': '#111724',
+            'editorGutter.background': '#0C1018',
+            'editorLineNumber.foreground': '#7A87A5',
+            'editorLineNumber.activeForeground': '#EDF1FA',
+        },
+    });
+};
 
 const SqlEditor: React.FC<SqlEditorProps> = ({ value, onChange, onRun, language = 'sql' }) => {
     // Monaco keeps the command registered at mount, so read the latest
@@ -30,7 +49,8 @@ const SqlEditor: React.FC<SqlEditorProps> = ({ value, onChange, onRun, language 
             height="100%"
             defaultLanguage={language}
             language={language} // Dynamic update
-            theme="vs-dark"
+            theme="dbacademy-dark"
+            beforeMount={defineTheme}
             value={value}
             onChange={onChange}
             onMount={handleEditorDidMount}

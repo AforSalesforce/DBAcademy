@@ -3,28 +3,45 @@
 @tailwind utilities;
 
 /* ── Design Tokens ─────────────────────────────────────────────────────────── */
+/* Colours are stored as RGB channels so Tailwind can apply opacity
+   (bg-accent/10). Tailwind names: canvas, surface, card, card-hover, ink,
+   muted, faint, accent, warm, success, danger — see tailwind.config.ts.
+   Text colours meet WCAG AA (4.5:1) on every surface:
+   muted #8A97B3 ≈ 6.5:1 on canvas, faint #7A87A5 ≥ 4.9:1 even on card. */
 :root {
-  --bg:          #07090F;
-  --surface:     #0C1018;
-  --card:        #111724;
-  --card-hover:  #161E2E;
+  --bg-rgb:         7 9 15;
+  --surface-rgb:    12 16 24;
+  --card-rgb:       17 23 36;
+  --card-hover-rgb: 22 30 46;
+  --text-rgb:       237 241 250;
+  --muted-rgb:      138 151 179;
+  --faint-rgb:      122 135 165;
+  --accent-rgb:     0 199 190;
+  --warm-rgb:       245 158 11;
+  --success-rgb:    34 197 94;
+  --danger-rgb:     239 68 68;
+
+  --bg:          rgb(var(--bg-rgb));
+  --surface:     rgb(var(--surface-rgb));
+  --card:        rgb(var(--card-rgb));
+  --card-hover:  rgb(var(--card-hover-rgb));
   --border:      rgba(255, 255, 255, 0.07);
   --border-dim:  rgba(255, 255, 255, 0.04);
 
-  --text:        #EDF1FA;
-  --text-muted:  #5C6B8A;
-  --text-faint:  #2E3A52;
+  --text:        rgb(var(--text-rgb));
+  --text-muted:  rgb(var(--muted-rgb));
+  --text-faint:  rgb(var(--faint-rgb));
 
-  --accent:      #00C7BE;
+  --accent:      rgb(var(--accent-rgb));
   --accent-dim:  rgba(0, 199, 190, 0.12);
   --accent-glow: rgba(0, 199, 190, 0.25);
 
-  --warm:        #F59E0B;
+  --warm:        rgb(var(--warm-rgb));
   --warm-dim:    rgba(245, 158, 11, 0.12);
   --warm-glow:   rgba(245, 158, 11, 0.25);
 
-  --success:     #22C55E;
-  --error:       #EF4444;
+  --success:     rgb(var(--success-rgb));
+  --error:       rgb(var(--danger-rgb));
 
   /* Legacy aliases — keep for components using old vars */
   --bg-primary:  var(--bg);

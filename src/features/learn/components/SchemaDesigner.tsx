@@ -167,11 +167,11 @@ export function SchemaDesigner({ engine, projectId, currentSchema, onApplyDDL }:
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Toolbar */}
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-200 dark:border-slate-700 shrink-0 flex-wrap">
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-white/10 shrink-0 flex-wrap">
         <input
           value={design.name}
           onChange={e => updateDesign({ name: e.target.value })}
-          className="text-sm font-medium bg-transparent border-b border-dashed border-slate-300 dark:border-slate-600 focus:outline-none text-slate-700 dark:text-slate-200 w-32"
+          className="text-sm font-medium bg-transparent border-b border-dashed border-white/15 focus:outline-none text-ink w-32"
         />
         <div className="flex-1" />
         <Btn title="Import from DB" onClick={handleImport}><Upload className="w-3.5 h-3.5" /></Btn>
@@ -182,19 +182,19 @@ export function SchemaDesigner({ engine, projectId, currentSchema, onApplyDDL }:
 
       {/* DDL preview bar */}
       {ddlPreview && (
-        <div className="bg-slate-900 text-green-400 p-3 text-xs font-mono overflow-x-auto shrink-0 border-b border-slate-700">
+        <div className="bg-surface text-success p-3 text-xs font-mono overflow-x-auto shrink-0 border-b border-white/10">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-slate-400 font-sans">Generated DDL</span>
+            <span className="text-muted font-sans">Generated DDL</span>
             <div className="flex gap-2">
               <button
                 onClick={handleApply}
-                className="px-2 py-0.5 bg-blue-600 text-white rounded text-xs font-sans hover:bg-blue-700"
+                className="px-2 py-0.5 bg-accent text-canvas rounded text-xs font-sans hover:bg-accent/90"
               >
                 Load into editor
               </button>
               <button
                 onClick={() => setDdlPreview(null)}
-                className="px-2 py-0.5 bg-slate-700 text-white rounded text-xs font-sans hover:bg-slate-600"
+                className="px-2 py-0.5 bg-card-hover text-white rounded text-xs font-sans hover:bg-card-hover"
               >
                 Close
               </button>
@@ -204,13 +204,14 @@ export function SchemaDesigner({ engine, projectId, currentSchema, onApplyDDL }:
         </div>
       )}
 
-      <div className="flex flex-1 overflow-hidden">
+      {/* Stacked: the sidebar panel is often under 300px wide, too narrow for side-by-side. */}
+      <div className="flex flex-col flex-1 overflow-hidden">
         {/* Left: table list + column editor */}
-        <div className="w-64 flex-shrink-0 border-r border-slate-200 dark:border-slate-700 flex flex-col overflow-hidden">
+        <div className="max-h-[55%] flex-shrink-0 border-b border-white/10 flex flex-col overflow-hidden">
           {/* Table list */}
           <div className="overflow-y-auto">
             {design.tables.length === 0 && (
-              <p className="p-3 text-xs text-slate-400 text-center">
+              <p className="p-3 text-xs text-muted text-center">
                 Click "Table" to add your first table.
               </p>
             )}
@@ -220,13 +221,13 @@ export function SchemaDesigner({ engine, projectId, currentSchema, onApplyDDL }:
                 onClick={() => setActiveTableIdx(ti)}
                 className={`group w-full flex items-center justify-between px-3 py-2 text-sm text-left transition-colors ${
                   activeTableIdx === ti
-                    ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-medium'
-                    : 'hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300'
+                    ? 'bg-accent/10 text-accent font-medium'
+                    : 'hover:bg-card text-ink'
                 }`}
               >
                 <span className="truncate">{t.name || '(unnamed)'}</span>
                 <Trash2
-                  className="w-3.5 h-3.5 text-slate-300 group-hover:text-red-400 shrink-0"
+                  className="w-3.5 h-3.5 text-ink group-hover:text-danger shrink-0"
                   onClick={e => { e.stopPropagation(); removeTable(ti); }}
                 />
               </button>
@@ -235,83 +236,83 @@ export function SchemaDesigner({ engine, projectId, currentSchema, onApplyDDL }:
 
           {/* Column editor for active table */}
           {activeTable !== null && activeTableIdx !== null && (
-            <div className="border-t border-slate-200 dark:border-slate-700 overflow-y-auto flex-1">
+            <div className="border-t border-white/10 overflow-y-auto flex-1">
               <div className="p-2">
                 <input
                   value={activeTable.name}
                   onChange={e => updateTable(activeTableIdx, { name: e.target.value })}
                   placeholder="Table name"
-                  className="w-full mb-2 text-sm font-mono bg-slate-100 dark:bg-slate-800 rounded px-2 py-1 focus:outline-none text-slate-800 dark:text-slate-100"
+                  className="w-full mb-2 text-sm font-mono bg-card rounded px-2 py-1 focus:outline-none text-ink"
                 />
 
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Columns</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted mb-1">Columns</p>
                 {activeTable.columns.map((col, ci) => (
                   <div key={ci} className="flex items-center gap-1 mb-1">
                     <input
                       value={col.name}
                       onChange={e => updateColumn(activeTableIdx, ci, { name: e.target.value })}
                       placeholder="col name"
-                      className="w-24 text-xs bg-slate-100 dark:bg-slate-800 rounded px-1.5 py-1 focus:outline-none"
+                      className="w-24 text-xs bg-card rounded px-1.5 py-1 focus:outline-none"
                     />
                     <select
                       value={col.type}
                       onChange={e => updateColumn(activeTableIdx, ci, { type: e.target.value })}
-                      className="flex-1 text-xs bg-slate-100 dark:bg-slate-800 rounded px-1 py-1 focus:outline-none"
+                      className="flex-1 text-xs bg-card rounded px-1 py-1 focus:outline-none"
                     >
                       {NEUTRAL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
-                    <label title="PK" className={`cursor-pointer text-[10px] px-1 rounded ${col.pk ? 'bg-yellow-400 text-black' : 'bg-slate-200 dark:bg-slate-700 text-slate-500'}`}>
+                    <label title="PK" className={`cursor-pointer text-[10px] px-1 rounded ${col.pk ? 'bg-warm text-black' : 'bg-card-hover text-faint'}`}>
                       <input type="checkbox" className="sr-only" checked={!!col.pk} onChange={e => updateColumn(activeTableIdx, ci, { pk: e.target.checked, nullable: e.target.checked ? false : col.nullable })} />PK
                     </label>
-                    <label title="Null" className={`cursor-pointer text-[10px] px-1 rounded ${col.nullable ? 'bg-slate-200 dark:bg-slate-700 text-slate-500' : 'bg-red-100 dark:bg-red-900/30 text-red-600'}`}>
+                    <label title="Null" className={`cursor-pointer text-[10px] px-1 rounded ${col.nullable ? 'bg-card-hover text-faint' : 'bg-danger/10 text-danger'}`}>
                       <input type="checkbox" className="sr-only" checked={!col.nullable} onChange={e => updateColumn(activeTableIdx, ci, { nullable: !e.target.checked })} />NN
                     </label>
                     <Trash2
-                      className="w-3 h-3 text-slate-300 hover:text-red-400 cursor-pointer shrink-0"
+                      className="w-3 h-3 text-ink hover:text-danger cursor-pointer shrink-0"
                       onClick={() => removeColumn(activeTableIdx, ci)}
                     />
                   </div>
                 ))}
                 <button
                   onClick={() => addColumn(activeTableIdx)}
-                  className="text-xs text-blue-500 hover:text-blue-700 mt-1"
+                  className="text-xs text-accent hover:text-accent mt-1"
                 >
                   + column
                 </button>
 
                 {/* FK editor */}
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-3 mb-1">Foreign Keys</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted mt-3 mb-1">Foreign Keys</p>
                 {activeTable.foreignKeys.map((fk, fi) => (
                   <div key={fi} className="flex items-center gap-1 mb-1">
                     <input
                       value={fk.column}
                       onChange={e => updateFK(activeTableIdx, fi, { column: e.target.value })}
                       placeholder="col"
-                      className="w-16 text-xs bg-slate-100 dark:bg-slate-800 rounded px-1.5 py-1 focus:outline-none"
+                      className="w-16 text-xs bg-card rounded px-1.5 py-1 focus:outline-none"
                     />
-                    <span className="text-xs text-slate-400">→</span>
+                    <span className="text-xs text-muted">→</span>
                     <input
                       value={fk.refTable}
                       onChange={e => updateFK(activeTableIdx, fi, { refTable: e.target.value })}
                       placeholder="table"
-                      className="w-16 text-xs bg-slate-100 dark:bg-slate-800 rounded px-1.5 py-1 focus:outline-none"
+                      className="w-16 text-xs bg-card rounded px-1.5 py-1 focus:outline-none"
                     />
-                    <span className="text-xs text-slate-400">.</span>
+                    <span className="text-xs text-muted">.</span>
                     <input
                       value={fk.refColumn}
                       onChange={e => updateFK(activeTableIdx, fi, { refColumn: e.target.value })}
                       placeholder="col"
-                      className="w-16 text-xs bg-slate-100 dark:bg-slate-800 rounded px-1.5 py-1 focus:outline-none"
+                      className="w-16 text-xs bg-card rounded px-1.5 py-1 focus:outline-none"
                     />
                     <Trash2
-                      className="w-3 h-3 text-slate-300 hover:text-red-400 cursor-pointer shrink-0"
+                      className="w-3 h-3 text-ink hover:text-danger cursor-pointer shrink-0"
                       onClick={() => removeFK(activeTableIdx, fi)}
                     />
                   </div>
                 ))}
                 <button
                   onClick={() => addFK(activeTableIdx)}
-                  className="text-xs text-blue-500 hover:text-blue-700 mt-1"
+                  className="text-xs text-accent hover:text-accent mt-1"
                 >
                   + foreign key
                 </button>
@@ -321,9 +322,9 @@ export function SchemaDesigner({ engine, projectId, currentSchema, onApplyDDL }:
         </div>
 
         {/* Right: live ERD preview */}
-        <div className="flex-1 relative overflow-hidden bg-slate-50 dark:bg-slate-950">
+        <div className="flex-1 min-h-[160px] relative overflow-hidden bg-canvas">
           {design.tables.length === 0 ? (
-            <div className="flex items-center justify-center h-full text-sm text-slate-400">
+            <div className="flex items-center justify-center h-full text-sm text-muted">
               Add tables to see a live preview
             </div>
           ) : (
@@ -351,8 +352,8 @@ function Btn({
       onClick={onClick}
       className={`flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors ${
         variant === 'primary'
-          ? 'bg-blue-600 text-white hover:bg-blue-700'
-          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+          ? 'bg-accent text-canvas hover:bg-accent/90'
+          : 'bg-card text-ink hover:bg-card-hover'
       }`}
     >
       {children}

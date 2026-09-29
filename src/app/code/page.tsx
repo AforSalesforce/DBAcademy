@@ -363,7 +363,7 @@ export default function CodePage() {
             style={{ background: '#111724', border: '1px solid rgba(255,255,255,0.06)' }}>
             <Link href="/learn"
               className="px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer"
-              style={{ color: '#5C6B8A' }}>
+              style={{ color: '#8A97B3' }}>
               Database
             </Link>
             <span className="px-2.5 py-1 rounded-md text-xs font-semibold"
@@ -385,7 +385,7 @@ export default function CodePage() {
                 className="px-2.5 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer"
                 style={language === lang.id
                   ? { background: lang.color + '18', color: lang.color, border: `1px solid ${lang.color}30` }
-                  : { color: '#5C6B8A' }
+                  : { color: '#8A97B3' }
                 }>
                 {lang.abbr}
               </button>
@@ -397,7 +397,7 @@ export default function CodePage() {
         <div className="flex items-center gap-2">
           {isServerLang && (
             <span className="hidden sm:block text-[10px] px-2 py-1 rounded"
-              style={{ background: 'rgba(255,255,255,0.04)', color: '#5C6B8A', border: '1px solid rgba(255,255,255,0.06)' }}>
+              style={{ background: 'rgba(255,255,255,0.04)', color: '#8A97B3', border: '1px solid rgba(255,255,255,0.06)' }}>
               Runs on server
             </span>
           )}
@@ -416,7 +416,7 @@ export default function CodePage() {
 
           <Link href="/dashboard"
             className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors cursor-pointer"
-            style={{ background: '#111724', border: '1px solid rgba(255,255,255,0.08)', color: '#5C6B8A' }}>
+            style={{ background: '#111724', border: '1px solid rgba(255,255,255,0.08)', color: '#8A97B3' }}>
             <BarChart3 className="w-3.5 h-3.5" /> Dashboard
           </Link>
         </div>
@@ -436,7 +436,7 @@ export default function CodePage() {
             <button
               onClick={() => setSidebarCollapsed(c => !c)}
               className="p-2 rounded-md transition-colors cursor-pointer mb-1"
-              style={{ color: '#5C6B8A' }}
+              style={{ color: '#8A97B3' }}
               title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
               {sidebarCollapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
             </button>
@@ -537,12 +537,12 @@ export default function CodePage() {
                 <p className="font-semibold mb-1" style={{ color: '#EDF1FA' }}>
                   {activeLang.label} Playground
                 </p>
-                <p className="text-sm" style={{ color: '#5C6B8A' }}>
+                <p className="text-sm" style={{ color: '#8A97B3' }}>
                   {activeLang.clientSide
                     ? 'Runs entirely in your browser — no server needed.'
                     : 'Runs on the server in a sandboxed executor.'}
                 </p>
-                <p className="text-sm mt-2" style={{ color: '#5C6B8A' }}>
+                <p className="text-sm mt-2" style={{ color: '#8A97B3' }}>
                   Select a lesson from the curriculum or write your own code.
                 </p>
               </div>

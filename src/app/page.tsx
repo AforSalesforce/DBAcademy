@@ -106,10 +106,10 @@ export default function HomePage() {
         <div className="flex items-center gap-3">
           {accounts && (
             <>
-              <Link href="/auth/signin" className="text-sm transition-colors px-3 py-1.5 rounded-lg cursor-pointer hover:bg-white/5" style={{ color: '#5C6B8A' }}>
+              <Link href="/auth/signin" className="text-sm transition-colors px-3 py-1.5 rounded-lg cursor-pointer hover:bg-white/5" style={{ color: '#8A97B3' }}>
                 Sign In
               </Link>
-              <Link href="/pricing" className="hidden sm:block text-sm transition-colors px-3 py-1.5 rounded-lg cursor-pointer hover:bg-white/5" style={{ color: '#5C6B8A' }}>
+              <Link href="/pricing" className="hidden sm:block text-sm transition-colors px-3 py-1.5 rounded-lg cursor-pointer hover:bg-white/5" style={{ color: '#8A97B3' }}>
                 Pricing
               </Link>
             </>
@@ -155,11 +155,11 @@ export default function HomePage() {
                 <br />
                 Engineering
                 <br />
-                <span style={{ color: '#5C6B8A', fontStyle: 'italic', fontSize: '0.72em', fontWeight: 400 }}>by actually doing it.</span>
+                <span style={{ color: '#8A97B3', fontStyle: 'italic', fontSize: '0.72em', fontWeight: 400 }}>by actually doing it.</span>
               </h1>
 
               {/* Sub */}
-              <p className="stagger-3 text-lg leading-relaxed mb-10 max-w-lg" style={{ color: '#5C6B8A' }}>
+              <p className="stagger-3 text-lg leading-relaxed mb-10 max-w-lg" style={{ color: '#8A97B3' }}>
                 Interactive SQL lessons with a live PostgreSQL, SQLite &amp; NoSQL playground.
                 Run queries, design schemas, track progress — all in the browser.
               </p>
@@ -193,7 +193,7 @@ export default function HomePage() {
                 ].map(s => (
                   <div key={s.label} className="text-center">
                     <div className="font-display font-extrabold text-xl" style={{ color: '#00C7BE' }}>{s.value}</div>
-                    <div className="text-xs mt-0.5" style={{ color: '#5C6B8A' }}>{s.label}</div>
+                    <div className="text-xs mt-0.5" style={{ color: '#8A97B3' }}>{s.label}</div>
                   </div>
                 ))}
               </div>
@@ -210,7 +210,7 @@ export default function HomePage() {
                 <div className="w-3 h-3 rounded-full" style={{ background: '#EF4444', opacity: 0.7 }} />
                 <div className="w-3 h-3 rounded-full" style={{ background: '#F59E0B', opacity: 0.7 }} />
                 <div className="w-3 h-3 rounded-full" style={{ background: '#22C55E', opacity: 0.7 }} />
-                <span className="ml-3 text-xs font-mono" style={{ color: '#2E3A52' }}>playground.sql</span>
+                <span className="ml-3 text-xs font-mono" style={{ color: '#7A87A5' }}>playground.sql</span>
               </div>
               {/* Code — a real query against the lesson data, with its real output */}
               <div className="p-5 font-mono text-sm leading-7">
@@ -297,7 +297,7 @@ export default function HomePage() {
           {[...MARQUEE_ITEMS, ...MARQUEE_ITEMS].map((item, i) => (
             <div key={i} className="flex items-center gap-2.5 shrink-0">
               <item.icon className="w-4 h-4" style={{ color: i % 2 === 0 ? '#00C7BE' : '#F59E0B' }} />
-              <span className="text-sm font-medium whitespace-nowrap" style={{ color: '#2E3A52' }}>{item.text}</span>
+              <span className="text-sm font-medium whitespace-nowrap" style={{ color: '#7A87A5' }}>{item.text}</span>
             </div>
           ))}
         </div>
@@ -310,7 +310,7 @@ export default function HomePage() {
             Everything to learn{' '}
             <span className="text-gradient-teal">databases</span>
           </h2>
-          <p className="text-base max-w-lg" style={{ color: '#5C6B8A' }}>
+          <p className="text-base max-w-lg" style={{ color: '#8A97B3' }}>
             A complete environment — from first query to production-ready schema design.
           </p>
         </div>
@@ -325,7 +325,7 @@ export default function HomePage() {
                   {f.title}
                   {'href' in f && <ArrowRight className="w-3.5 h-3.5 opacity-50" />}
                 </h3>
-                <p className="text-sm leading-relaxed" style={{ color: '#5C6B8A' }}>
+                <p className="text-sm leading-relaxed" style={{ color: '#8A97B3' }}>
                   {f.description}{accounts && 'accountsNote' in f ? f.accountsNote : ''}
                 </p>
               </>
@@ -359,7 +359,7 @@ export default function HomePage() {
             <GraduationCap className="w-7 h-7 text-white" />
           </div>
           <h2 className="heading-lg text-2xl sm:text-4xl mb-4" style={{ color: '#EDF1FA' }}>Ready to level up?</h2>
-          <p className="text-base mb-9 max-w-md mx-auto" style={{ color: '#5C6B8A' }}>
+          <p className="text-base mb-9 max-w-md mx-auto" style={{ color: '#8A97B3' }}>
             Start free — no credit card, no install. Open the app and run your first query in under 30 seconds.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -388,17 +388,17 @@ export default function HomePage() {
       <footer className="relative z-10 py-10 text-center text-sm" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
         <div className="flex items-center justify-center gap-1.5 mb-3">
           <Database className="w-3.5 h-3.5" style={{ color: '#00C7BE' }} />
-          <span className="font-semibold font-display" style={{ color: '#2E3A52' }}>DBAcademy</span>
+          <span className="font-semibold font-display" style={{ color: '#7A87A5' }}>DBAcademy</span>
         </div>
         <div className="flex items-center justify-center gap-5">
           {accounts && (
             <>
-              <Link href="/pricing" className="transition-colors cursor-pointer" style={{ color: '#2E3A52' }}>Pricing</Link>
-              <Link href="/auth/signin" className="transition-colors cursor-pointer" style={{ color: '#2E3A52' }}>Sign In</Link>
+              <Link href="/pricing" className="transition-colors cursor-pointer" style={{ color: '#7A87A5' }}>Pricing</Link>
+              <Link href="/auth/signin" className="transition-colors cursor-pointer" style={{ color: '#7A87A5' }}>Sign In</Link>
             </>
           )}
-          <Link href="/learn" className="transition-colors cursor-pointer" style={{ color: '#2E3A52' }}>Database</Link>
-          <Link href="/code" className="transition-colors cursor-pointer" style={{ color: '#2E3A52' }}>Code</Link>
+          <Link href="/learn" className="transition-colors cursor-pointer" style={{ color: '#7A87A5' }}>Database</Link>
+          <Link href="/code" className="transition-colors cursor-pointer" style={{ color: '#7A87A5' }}>Code</Link>
         </div>
       </footer>
     </main>

@@ -123,7 +123,7 @@ export default function PricingPage() {
               <span className="text-base font-bold tracking-tight font-display">DBAcademy</span>
             </Link>
             <div className="flex items-center gap-3">
-              <Link href="/auth/signin" className="text-sm transition-colors px-3 py-1.5 rounded-lg cursor-pointer" style={{ color: '#5C6B8A' }}>
+              <Link href="/auth/signin" className="text-sm transition-colors px-3 py-1.5 rounded-lg cursor-pointer" style={{ color: '#8A97B3' }}>
                 Sign In
               </Link>
               <Link
@@ -149,7 +149,7 @@ export default function PricingPage() {
             Simple, transparent{' '}
             <span className="text-gradient-teal">pricing</span>
           </h1>
-          <p className="stagger-3 text-lg max-w-2xl mx-auto mb-8" style={{ color: '#5C6B8A' }}>
+          <p className="stagger-3 text-lg max-w-2xl mx-auto mb-8" style={{ color: '#8A97B3' }}>
             Start free, upgrade when you need more. All plans include browser-based database engines.
           </p>
 
@@ -158,14 +158,14 @@ export default function PricingPage() {
             <button
               onClick={() => setBilling('monthly')}
               className="px-5 py-2 rounded-full text-sm font-semibold transition-all cursor-pointer"
-              style={billing === 'monthly' ? { background: '#1A2235', color: '#EDF1FA' } : { color: '#5C6B8A' }}
+              style={billing === 'monthly' ? { background: '#1A2235', color: '#EDF1FA' } : { color: '#8A97B3' }}
             >
               Monthly
             </button>
             <button
               onClick={() => setBilling('annual')}
               className="px-5 py-2 rounded-full text-sm font-semibold transition-all flex items-center gap-1.5 cursor-pointer"
-              style={billing === 'annual' ? { background: '#1A2235', color: '#EDF1FA' } : { color: '#5C6B8A' }}
+              style={billing === 'annual' ? { background: '#1A2235', color: '#EDF1FA' } : { color: '#8A97B3' }}
             >
               Annual
               <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold" style={{ background: 'rgba(34,197,94,0.15)', color: '#22C55E', border: '1px solid rgba(34,197,94,0.25)' }}>
@@ -206,14 +206,14 @@ export default function PricingPage() {
 
               <div className="mb-5">
                 <h3 className="text-xl font-bold mb-1 font-display" style={{ color: '#EDF1FA' }}>{plan.name}</h3>
-                <p className="text-sm" style={{ color: '#5C6B8A' }}>{plan.description}</p>
+                <p className="text-sm" style={{ color: '#8A97B3' }}>{plan.description}</p>
               </div>
 
               <div className="mb-1">
                 <span className="text-4xl font-extrabold tracking-tight font-display" style={{ color: '#EDF1FA' }}>${plan.price[billing]}</span>
-                {plan.price[billing] > 0 && <span className="text-sm ml-1" style={{ color: '#5C6B8A' }}>/mo</span>}
+                {plan.price[billing] > 0 && <span className="text-sm ml-1" style={{ color: '#8A97B3' }}>/mo</span>}
               </div>
-              {plan.priceNote && <p className="text-xs mb-5" style={{ color: '#5C6B8A' }}>{plan.priceNote}</p>}
+              {plan.priceNote && <p className="text-xs mb-5" style={{ color: '#8A97B3' }}>{plan.priceNote}</p>}
               {!plan.priceNote && <div className="mb-5" />}
 
               {plan.id === 'free' ? (
@@ -253,9 +253,9 @@ export default function PricingPage() {
                     {feature.included ? (
                       <CheckCircle className="w-4 h-4 shrink-0" style={{ color: '#00C7BE' }} />
                     ) : (
-                      <X className="w-4 h-4 shrink-0" style={{ color: '#2E3A52' }} />
+                      <X className="w-4 h-4 shrink-0" style={{ color: '#7A87A5' }} />
                     )}
-                    <span style={{ color: feature.included ? '#EDF1FA' : '#2E3A52' }}>{feature.text}</span>
+                    <span style={{ color: feature.included ? '#EDF1FA' : '#7A87A5' }}>{feature.text}</span>
                   </li>
                 ))}
               </ul>
@@ -280,11 +280,11 @@ export default function PricingPage() {
                   <span className="font-medium text-sm pr-4" style={{ color: '#EDF1FA' }}>{faq.q}</span>
                   <ChevronDown
                     className={`w-4 h-4 shrink-0 transition-transform duration-200 ${openFaq === i ? 'rotate-180' : ''}`}
-                    style={{ color: '#5C6B8A' }}
+                    style={{ color: '#8A97B3' }}
                   />
                 </button>
                 {openFaq === i && (
-                  <div className="px-6 pb-4 text-sm leading-relaxed" style={{ borderTop: '1px solid rgba(255,255,255,0.05)', color: '#5C6B8A' }}>
+                  <div className="px-6 pb-4 text-sm leading-relaxed" style={{ borderTop: '1px solid rgba(255,255,255,0.05)', color: '#8A97B3' }}>
                     <div className="pt-3">{faq.a}</div>
                   </div>
                 )}
@@ -300,7 +300,7 @@ export default function PricingPage() {
               <GraduationCap className="w-6 h-6 text-white" />
             </div>
             <h2 className="text-2xl font-bold mb-2 heading-lg" style={{ color: '#EDF1FA' }}>Need an Institution Plan?</h2>
-            <p className="text-sm mb-7 max-w-sm mx-auto" style={{ color: '#5C6B8A' }}>
+            <p className="text-sm mb-7 max-w-sm mx-auto" style={{ color: '#8A97B3' }}>
               Custom pricing, bulk discounts, and a personalized demo for your school or company.
             </p>
             <a

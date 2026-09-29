@@ -96,12 +96,12 @@ const Sidebar: React.FC<SidebarProps> = ({ modules, activeLessonId, onAddModule,
     }
 
     return (
-        <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800">
+        <div className="flex flex-col h-full bg-surface border-r border-line">
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 {modules.map(module => (
                     <div key={module.id}>
                         <div
-                            className="flex items-center justify-between mb-2 px-2 py-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-400"
+                            className="flex items-center justify-between mb-2 px-2 py-1 rounded-md hover:bg-card cursor-pointer transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
                             onClick={() => toggleModule(module.id)}
                             onKeyDown={e => activateOnKey(e, () => toggleModule(module.id))}
                             role="button"
@@ -110,7 +110,7 @@ const Sidebar: React.FC<SidebarProps> = ({ modules, activeLessonId, onAddModule,
                             onMouseEnter={() => setHoveredModuleId(module.id)}
                             onMouseLeave={() => setHoveredModuleId(null)}
                         >
-                            <div className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
+                            <div className="flex items-center gap-2 text-sm font-semibold text-ink">
                                 {isExpanded(module.id) ? (
                                     <ChevronDown size={16} />
                                 ) : (
@@ -131,7 +131,7 @@ const Sidebar: React.FC<SidebarProps> = ({ modules, activeLessonId, onAddModule,
                                         setAddingLessonToModuleId(module.id);
                                         if (!isExpanded(module.id)) toggleModule(module.id);
                                     }}
-                                    className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors"
+                                    className="p-1 hover:bg-card-hover rounded transition-colors"
                                     title="Add Lesson"
                                     aria-label={`Add a lesson to ${module.title}`}
                                 >
@@ -146,7 +146,7 @@ const Sidebar: React.FC<SidebarProps> = ({ modules, activeLessonId, onAddModule,
                                             }
                                             onRemoveModule(module.id);
                                         }}
-                                        className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 rounded transition-colors text-slate-400"
+                                        className="p-1 hover:bg-danger/10 hover:text-danger rounded transition-colors text-muted"
                                         title="Delete Module"
                                         aria-label={`Delete ${module.title}`}
                                     >
@@ -157,7 +157,7 @@ const Sidebar: React.FC<SidebarProps> = ({ modules, activeLessonId, onAddModule,
                         </div>
 
                         {isExpanded(module.id) && (
-                            <div className="space-y-1 ml-2 pl-2 border-l border-slate-200 dark:border-slate-800">
+                            <div className="space-y-1 ml-2 pl-2 border-l border-line">
                                 {module.lessons.map(lesson => {
                                     const isActive = activeLessonId === lesson.id;
                                     const isHovered = hoveredLessonId === lesson.id;
@@ -172,16 +172,16 @@ const Sidebar: React.FC<SidebarProps> = ({ modules, activeLessonId, onAddModule,
                                             onMouseEnter={() => setHoveredLessonId(lesson.id)}
                                             onMouseLeave={() => setHoveredLessonId(null)}
                                             className={cn(
-                                                "flex items-center gap-3 px-3 py-2 text-sm rounded-md cursor-pointer transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-400",
+                                                "flex items-center gap-3 px-3 py-2 text-sm rounded-md cursor-pointer transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent",
                                                 isActive
-                                                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 font-medium"
-                                                    : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                                                    ? "bg-accent/10 text-accent font-medium"
+                                                    : "text-muted hover:bg-card"
                                             )}
                                         >
                                             {lesson.completed ? (
-                                                <CheckCircle size={16} className="text-green-500 shrink-0" />
+                                                <CheckCircle size={16} className="text-success shrink-0" />
                                             ) : (
-                                                <Circle size={16} className={cn("text-slate-400 shrink-0", isActive && "text-blue-500")} />
+                                                <Circle size={16} className={cn("text-muted shrink-0", isActive && "text-accent")} />
                                             )}
                                             <span className="truncate flex-1" title={lesson.title}>{lesson.title}</span>
                                             {lesson.completed && <span className="sr-only">(completed)</span>}
@@ -194,8 +194,8 @@ const Sidebar: React.FC<SidebarProps> = ({ modules, activeLessonId, onAddModule,
                                                     }}
                                                     aria-label={`Delete ${lesson.title}`}
                                                     className={cn(
-                                                        "p-0.5 rounded transition-all text-slate-400 shrink-0 focus:opacity-100",
-                                                        "hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400",
+                                                        "p-0.5 rounded transition-all text-muted shrink-0 focus:opacity-100",
+                                                        "hover:bg-danger/10 hover:text-danger",
                                                         isHovered ? "opacity-100" : "opacity-0"
                                                     )}
                                                     title="Delete Lesson"
@@ -219,13 +219,13 @@ const Sidebar: React.FC<SidebarProps> = ({ modules, activeLessonId, onAddModule,
                                             onBlur={() => {
                                                 if (!newLessonTitle.trim()) setAddingLessonToModuleId(null);
                                             }}
-                                            className="w-full px-2 py-1 text-sm bg-white dark:bg-slate-900 border border-blue-400 rounded focus:outline-none"
+                                            className="w-full px-2 py-1 text-sm bg-surface border border-accent rounded focus:outline-none"
                                         />
                                     </form>
                                 ) : null}
 
                                 {module.lessons.length === 0 && !addingLessonToModuleId && (
-                                    <div className="px-3 py-2 text-xs text-slate-400 italic">
+                                    <div className="px-3 py-2 text-xs text-muted italic">
                                         No lessons yet
                                     </div>
                                 )}
@@ -235,7 +235,7 @@ const Sidebar: React.FC<SidebarProps> = ({ modules, activeLessonId, onAddModule,
                 ))}
 
                 {modules.length === 0 && (
-                    <div className="text-center py-8 text-slate-500 text-sm">
+                    <div className="text-center py-8 text-faint text-sm">
                         <Folder className="mx-auto mb-2 opacity-50" size={32} />
                         No curriculum found for this engine.
                     </div>
@@ -254,7 +254,7 @@ const Sidebar: React.FC<SidebarProps> = ({ modules, activeLessonId, onAddModule,
                                 onBlur={() => {
                                     if (!newModuleTitle.trim()) setIsAddingModule(false);
                                 }}
-                                className="w-full p-2 text-sm bg-white dark:bg-slate-900 border border-blue-500 rounded font-semibold focus:outline-none shadow-sm"
+                                className="w-full p-2 text-sm bg-surface border border-accent rounded font-semibold focus:outline-none shadow-sm"
                             />
                         </form>
                     </div>
@@ -263,10 +263,10 @@ const Sidebar: React.FC<SidebarProps> = ({ modules, activeLessonId, onAddModule,
             </div>
 
             {!isAddingModule && (
-                <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+                <div className="p-4 border-t border-line">
                     <button
                         onClick={() => setIsAddingModule(true)}
-                        className="w-full flex items-center justify-center gap-2 p-2 text-sm font-medium text-slate-600 dark:text-slate-400 border border-dashed border-slate-300 dark:border-slate-700 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                        className="w-full flex items-center justify-center gap-2 p-2 text-sm font-medium text-muted border border-dashed border-white/10 rounded-md hover:bg-card transition-colors"
                     >
                         <Plus size={16} /> Add Module
                     </button>

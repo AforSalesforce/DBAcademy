@@ -64,7 +64,7 @@ function SignInContent() {
         <div className="rounded-2xl p-8 shadow-2xl" style={{ background: '#0C1018', border: '1px solid rgba(255,255,255,0.07)' }}>
           <div className="text-center mb-6">
             <h1 className="text-2xl font-bold mb-1" style={{ color: '#EDF1FA' }}>Welcome back</h1>
-            <p className="text-sm" style={{ color: '#5C6B8A' }}>Sign in to continue your learning journey</p>
+            <p className="text-sm" style={{ color: '#8A97B3' }}>Sign in to continue your learning journey</p>
           </div>
 
           {error && (
@@ -115,7 +115,7 @@ function SignInContent() {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3.5 top-1/2 -translate-y-1/2 transition-colors cursor-pointer"
-                  style={{ color: '#5C6B8A' }}
+                  style={{ color: '#8A97B3' }}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -141,7 +141,7 @@ function SignInContent() {
           </form>
 
           <div className="mt-6 text-center">
-            <p className="text-sm" style={{ color: '#5C6B8A' }}>
+            <p className="text-sm" style={{ color: '#8A97B3' }}>
               Don&apos;t have an account?{' '}
               <Link href="/auth/signup" className="font-semibold transition-colors cursor-pointer" style={{ color: '#00C7BE' }}>
                 Sign up free
@@ -150,7 +150,7 @@ function SignInContent() {
           </div>
         </div>
 
-        <p className="text-center text-xs mt-5" style={{ color: '#2E3A52' }}>
+        <p className="text-center text-xs mt-5" style={{ color: '#7A87A5' }}>
           By signing in, you agree to our Terms of Service and Privacy Policy.
         </p>
       </div>

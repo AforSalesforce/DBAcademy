@@ -21,7 +21,7 @@ import { loadDraft, saveDraft } from '@/features/learn/lesson-drafts';
 import {
   Database, GraduationCap, BarChart3, NotebookPen, ChevronDown, ChevronUp,
   FolderOpen, Plus, Trash2, Check, Play, Sprout, RotateCcw,
-  PanelLeftClose, PanelLeftOpen, CheckCircle2,
+  PanelLeftClose, PanelLeftOpen, CheckCircle2, ListTree, Code2, MoreHorizontal,
   BookOpen, Table2, GitBranch, Bookmark, LayoutTemplate,
 } from 'lucide-react';
 import { EngineType } from '@/db-engines/types';
@@ -94,6 +94,8 @@ export default function LearnPage() {
     setHomeDismissed(true);
     try { sessionStorage.setItem('dbacademy:home-dismissed', '1'); } catch { /* ignore */ }
   };
+  // Phones show one pane at a time, chosen from the bottom tab bar.
+  const [mobileView, setMobileView] = useState<'path' | 'lesson' | 'editor'>(() => (homeDismissed ? 'editor' : 'lesson'));
   const [challengeUi, setChallengeUi] = useState<{ grade: Grade | null; checking: boolean; xpAwarded: number | null }>(
     { grade: null, checking: false, xpAwarded: null },
   );
@@ -382,6 +384,7 @@ export default function LearnPage() {
   };
 
   const handleSelectLesson = (lesson: Lesson, moduleId: string) => {
+    setMobileView('lesson');
     const fullLesson = getLessonById(moduleId, lesson.id);
     setActiveLessonModuleId(moduleId);
     setChallengeUi({ grade: null, checking: false, xpAwarded: null });
@@ -422,6 +425,7 @@ export default function LearnPage() {
     ]);
     const xpAwarded = grade.status === 'pass' ? completeChallenge(lessonId, activeLessonModuleId) : null;
     setChallengeUi({ grade, checking: false, xpAwarded });
+    setMobileView('lesson'); // on phones, the verdict is on the lesson pane
   };
 
   /** The lesson after the open one in the learning path (it may switch engine). */
@@ -482,7 +486,7 @@ export default function LearnPage() {
           <div className="w-10 h-10 rounded-full border-2 animate-spin" style={{ borderColor: 'rgba(0,199,190,0.2)', borderTopColor: '#00C7BE' }} />
           <Database className="w-4 h-4 absolute inset-0 m-auto" style={{ color: '#00C7BE' }} />
         </div>
-        <div className="text-sm font-medium animate-pulse" style={{ color: '#5C6B8A' }}>Initializing Engine…</div>
+        <div className="text-sm font-medium animate-pulse" style={{ color: '#8A97B3' }}>Initializing Engine…</div>
       </div>
     );
   }
@@ -505,7 +509,7 @@ export default function LearnPage() {
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col w-full min-h-screen md:h-screen md:overflow-hidden" style={{ background: '#07090F', color: '#EDF1FA' }}>
+    <div className="flex flex-col w-full min-h-screen md:h-screen md:overflow-hidden pb-14 md:pb-0" style={{ background: '#07090F', color: '#EDF1FA' }}>
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <header className="h-14 flex items-center justify-between px-4 shrink-0 z-10 sticky top-0 md:relative" style={{ background: '#0C1018', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
@@ -518,7 +522,7 @@ export default function LearnPage() {
                 <GraduationCap className="w-3 h-3" style={{ color: '#00C7BE' }} />
               </div>
             </div>
-            <h1 className="text-xl font-bold tracking-tight font-display" style={{ color: '#EDF1FA' }}>
+            <h1 className="hidden sm:block text-xl font-bold tracking-tight font-display" style={{ color: '#EDF1FA' }}>
               DBAcademy
             </h1>
           </Link>
@@ -532,15 +536,15 @@ export default function LearnPage() {
               className="flex items-center gap-2 py-1.5 px-3 rounded-md text-sm font-medium transition-colors max-w-[180px] cursor-pointer"
               style={{ background: '#111724', border: '1px solid rgba(255,255,255,0.08)', color: '#EDF1FA' }}
             >
-              <FolderOpen className="w-3.5 h-3.5 shrink-0" style={{ color: '#5C6B8A' }} />
+              <FolderOpen className="w-3.5 h-3.5 shrink-0" style={{ color: '#8A97B3' }} />
               <span className="truncate">{activeProject?.name ?? 'Select project'}</span>
-              <ChevronDown className="w-3 h-3 shrink-0" style={{ color: '#5C6B8A' }} />
+              <ChevronDown className="w-3 h-3 shrink-0" style={{ color: '#8A97B3' }} />
             </button>
 
             {projectMenuOpen && (
               <div className="absolute top-full left-0 mt-1 w-64 rounded-lg shadow-xl z-50 py-1 overflow-hidden" style={{ background: '#111724', border: '1px solid rgba(255,255,255,0.08)' }}>
                 {/* Default playgrounds */}
-                <p className="px-3 pt-2 pb-1 text-[10px] font-bold uppercase tracking-widest" style={{ color: '#5C6B8A' }}>Playgrounds</p>
+                <p className="px-3 pt-2 pb-1 text-[10px] font-bold uppercase tracking-widest" style={{ color: '#8A97B3' }}>Playgrounds</p>
                 {defaultProjects.map(p => (
                   <ProjectMenuItem key={p.id} project={p} active={p.id === projectStore.activeProjectId} onSelect={handleSelectProject} />
                 ))}
@@ -548,7 +552,7 @@ export default function LearnPage() {
                 {/* User projects */}
                 {userProjects.length > 0 && (
                   <div className="mt-1 pt-1" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                    <p className="px-3 pt-1 pb-1 text-[10px] font-bold uppercase tracking-widest" style={{ color: '#5C6B8A' }}>My projects</p>
+                    <p className="px-3 pt-1 pb-1 text-[10px] font-bold uppercase tracking-widest" style={{ color: '#8A97B3' }}>My projects</p>
                     {userProjects.map(p => (
                       <ProjectMenuItem key={p.id} project={p} active={p.id === projectStore.activeProjectId} onSelect={handleSelectProject} onDelete={handleDeleteProject} />
                     ))}
@@ -587,7 +591,7 @@ export default function LearnPage() {
                     <button
                       onClick={() => setShowNewProject(true)}
                       className="w-full flex items-center gap-1.5 px-2 py-1.5 text-xs rounded transition-colors cursor-pointer"
-                      style={{ color: '#5C6B8A' }}
+                      style={{ color: '#8A97B3' }}
                     >
                       <Plus className="w-3.5 h-3.5" /> New project
                     </button>
@@ -600,11 +604,17 @@ export default function LearnPage() {
 
         {/* Right header buttons */}
         <div className="flex items-center gap-2">
+          <MobileMoreMenu
+            onNotes={() => notesStore.toggleDrawer()}
+            onSeed={handleSeedData}
+            seeding={workspace.isSeeding}
+            onReset={handleResetDb}
+          />
           <button
             onClick={() => notesStore.toggleDrawer()}
             title="Notes (Cmd+Shift+N)"
             className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors cursor-pointer"
-            style={{ background: '#111724', border: '1px solid rgba(255,255,255,0.08)', color: '#5C6B8A' }}
+            style={{ background: '#111724', border: '1px solid rgba(255,255,255,0.08)', color: '#8A97B3' }}
           >
             <NotebookPen className="w-3.5 h-3.5" /> Notes
           </button>
@@ -612,14 +622,14 @@ export default function LearnPage() {
           <Link
             href="/dashboard"
             className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors cursor-pointer"
-            style={{ background: '#111724', border: '1px solid rgba(255,255,255,0.08)', color: '#5C6B8A' }}
+            style={{ background: '#111724', border: '1px solid rgba(255,255,255,0.08)', color: '#8A97B3' }}
           >
             <BarChart3 className="w-3.5 h-3.5" /> Dashboard
           </Link>
 
           <button
             className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors cursor-pointer disabled:opacity-50"
-            style={{ background: '#111724', border: '1px solid rgba(255,255,255,0.08)', color: '#5C6B8A' }}
+            style={{ background: '#111724', border: '1px solid rgba(255,255,255,0.08)', color: '#8A97B3' }}
             onClick={handleSeedData}
             disabled={workspace.isSeeding}
             title="Seed sample data"
@@ -644,10 +654,10 @@ export default function LearnPage() {
       <div className="flex flex-col md:flex-row flex-1 md:overflow-hidden">
 
         {/* ── Navigation Sidebar ────────────────────────────────────────── */}
-        <div className={`flex flex-row transition-all duration-200 overflow-hidden ${
+        <div className={`${mobileView === 'path' ? 'flex' : 'hidden'} md:flex flex-row transition-all duration-200 overflow-hidden w-full h-[calc(100dvh-7rem)] md:h-auto ${
           sidebarCollapsed
-            ? 'h-16 md:h-auto w-full md:w-16 shrink-0'
-            : 'max-h-[40vh] md:max-h-full w-full flex-1 md:min-w-[240px]'
+            ? 'md:w-16 md:shrink-0'
+            : 'md:flex-1 md:max-h-full md:min-w-[240px]'
         }`} style={{ borderRight: '1px solid rgba(255,255,255,0.06)' }}>
 
           {/* ── Activity Bar (vertical icon strip) ────────────────────────── */}
@@ -666,7 +676,7 @@ export default function LearnPage() {
                   style={{
                     width: 52, height: 52,
                     background: isActive ? glow : 'transparent',
-                    color: isActive ? color : 'rgba(94,113,138,0.5)',
+                    color: isActive ? color : '#7A87A5',
                   }}
                 >
                   {/* Left accent bar */}
@@ -674,7 +684,7 @@ export default function LearnPage() {
                     <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r-full" style={{ background: color }} />
                   )}
                   <Icon style={{ width: 20, height: 20, color: isActive ? color : undefined }} strokeWidth={isActive ? 2.5 : 1.8} />
-                  <span className="font-semibold leading-none" style={{ fontSize: 9, color: isActive ? color : 'rgba(94,113,138,0.5)' }}>{label}</span>
+                  <span className="font-semibold leading-none" style={{ fontSize: 9, color: isActive ? color : '#7A87A5' }}>{label}</span>
                 </button>
               );
             })}
@@ -684,8 +694,9 @@ export default function LearnPage() {
             <button
               onClick={() => setSidebarCollapsed(c => !c)}
               title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-              className="flex items-center justify-center rounded-xl transition-colors cursor-pointer mb-1"
-              style={{ width: 52, height: 40, color: 'rgba(94,113,138,0.5)' }}
+              aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              className="hidden md:flex items-center justify-center rounded-xl transition-colors cursor-pointer mb-1"
+              style={{ width: 52, height: 40, color: '#7A87A5' }}
             >
               {sidebarCollapsed
                 ? <PanelLeftOpen style={{ width: 18, height: 18 }} />
@@ -695,15 +706,16 @@ export default function LearnPage() {
           </div>
 
           {/* ── Content Panel ─────────────────────────────────────────────── */}
-          {!sidebarCollapsed && (
-            <div className="flex-1 flex flex-col overflow-hidden" style={{ background: '#0C1018' }}>
+          {/* Collapsing only applies on wide screens; phones always show the panel. */}
+          {(
+            <div className={`flex-1 flex flex-col overflow-hidden ${sidebarCollapsed ? 'md:hidden' : ''}`} style={{ background: '#0C1018' }}>
               {/* Panel title bar — shows active tab icon + label in its color */}
               {(() => {
                 const activeNav = TAB_NAV.find(t => t.id === activeTab);
                 return (
                   <div className="px-3 py-2.5 shrink-0 flex items-center gap-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                     {activeNav && <activeNav.Icon style={{ width: 13, height: 13, color: activeNav.color }} strokeWidth={2.5} />}
-                    <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: activeNav?.color ?? '#2E3A52' }}>
+                    <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: activeNav?.color ?? '#7A87A5' }}>
                       {activeNav?.label}
                     </span>
                   </div>
@@ -724,10 +736,10 @@ export default function LearnPage() {
                     onRemoveLesson={handleRemoveLesson}
                   />
                 )}
-                {activeTab === 'schema' && <SchemaViewer tables={workspace.schema} onViewTable={workspace.handleViewTable} />}
+                {activeTab === 'schema' && <SchemaViewer tables={workspace.schema} onViewTable={name => { workspace.handleViewTable(name); setMobileView('editor'); }} />}
                 {activeTab === 'erd' && (
                   <div className="h-full flex flex-col">
-                    <div className="p-3 text-xs text-center" style={{ color: '#5C6B8A', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div className="p-3 text-xs text-center" style={{ color: '#8A97B3', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                       Visualizing {workspace.schema.length} tables
                     </div>
                     <div className="flex-1 relative overflow-hidden min-h-[200px]" style={{ background: '#07090F' }}>
@@ -739,8 +751,8 @@ export default function LearnPage() {
                   <SavedQueriesPanel
                     activeEngine={dbType}
                     activeProjectId={projectStore.activeProjectId}
-                    onLoad={body => workspace.setQuery(body)}
-                    onRun={body => { workspace.setQuery(body); runQuery(body); }}
+                    onLoad={body => { workspace.setQuery(body); setMobileView('editor'); }}
+                    onRun={body => { workspace.setQuery(body); runQuery(body); setMobileView('editor'); }}
                   />
                 )}
                 {activeTab === 'design' && dbType !== 'nosql' && (
@@ -754,7 +766,7 @@ export default function LearnPage() {
                   </div>
                 )}
                 {activeTab === 'design' && dbType === 'nosql' && (
-                  <div className="p-4 text-sm text-center" style={{ color: '#5C6B8A' }}>
+                  <div className="p-4 text-sm text-center" style={{ color: '#8A97B3' }}>
                     Schema designer is not available for schemaless NoSQL.
                   </div>
                 )}
@@ -765,7 +777,7 @@ export default function LearnPage() {
 
         {/* ── Middle Panel: Lesson, or the welcome / continue panel ─────────── */}
         {activeLesson ? (
-          <div className="flex-1 w-full md:w-auto min-w-0 md:min-w-[240px] md:overflow-auto" style={{ background: '#0C1018', borderRight: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className={`${mobileView === 'lesson' ? 'block' : 'hidden'} md:block flex-1 w-full md:w-auto min-w-0 md:min-w-[240px] md:overflow-auto min-h-[calc(100dvh-7rem)] md:min-h-0`} style={{ background: '#0C1018', borderRight: '1px solid rgba(255,255,255,0.06)' }}>
             <LessonView
               key={activeLesson.id}
               id={activeLesson.id}
@@ -787,9 +799,10 @@ export default function LearnPage() {
                   onResetStarter={() => {
                     if (window.confirm('Replace the editor contents with the starting query?')) {
                       workspace.setQuery(activeLesson.challenge!.starter);
+                      setMobileView('editor');
                     }
                   }}
-                  onUseSolution={sql => workspace.setQuery(sql)}
+                  onUseSolution={sql => { workspace.setQuery(sql); setMobileView('editor'); }}
                   onNextLesson={nextLesson ? () => openStep(nextLesson) : undefined}
                   explain={explainForEngine}
                 />
@@ -802,9 +815,18 @@ export default function LearnPage() {
               }
             />
           </div>
-        ) : !homeDismissed && (
-          <div className="flex-1 w-full md:w-auto min-w-0 md:min-w-[240px] md:overflow-auto" style={{ background: '#0C1018', borderRight: '1px solid rgba(255,255,255,0.06)' }}>
-            <LearnHome onStart={openStep} onDismiss={dismissHome} />
+        ) : !homeDismissed ? (
+          <div className={`${mobileView === 'lesson' ? 'block' : 'hidden'} md:block flex-1 w-full md:w-auto min-w-0 md:min-w-[240px] md:overflow-auto min-h-[calc(100dvh-7rem)] md:min-h-0`} style={{ background: '#0C1018', borderRight: '1px solid rgba(255,255,255,0.06)' }}>
+            <LearnHome onStart={openStep} onDismiss={() => { dismissHome(); setMobileView('editor'); }} />
+          </div>
+        ) : mobileView === 'lesson' && (
+          // Phones only: the Lesson tab with nothing open.
+          <div className="md:hidden flex flex-col items-center justify-center gap-3 p-8 text-center min-h-[calc(100dvh-7rem)]" style={{ background: '#0C1018' }}>
+            <BookOpen className="w-8 h-8" style={{ color: '#00C7BE' }} aria-hidden="true" />
+            <p className="text-sm" style={{ color: '#B4BED3' }}>No lesson open.</p>
+            <button onClick={() => setMobileView('path')} className="px-4 py-2 rounded-lg text-sm font-semibold" style={{ background: '#00C7BE', color: '#07090F' }}>
+              Choose a lesson
+            </button>
           </div>
         )}
 
@@ -819,7 +841,7 @@ export default function LearnPage() {
 
         {/* ── Right Panel: Editor + Results ──────────────────────────────── */}
         <div
-          className="w-full flex flex-col"
+          className={`${mobileView === 'editor' ? 'flex' : 'hidden'} md:flex w-full flex-col h-[calc(100dvh-7rem)] md:h-auto`}
           style={{
             background: '#07090F',
             ...(editorWidthPx !== null
@@ -878,9 +900,9 @@ export default function LearnPage() {
                 onClick={() => openSaveQueryModal(workspace.query, dbType)}
                 title="Save query (⌘S)"
                 className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-medium transition-colors cursor-pointer"
-                style={{ color: '#5C6B8A', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+                style={{ color: '#8A97B3', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
               >
-                Save <kbd className="text-[9px] px-1 py-0.5 rounded" style={{ background: 'rgba(255,255,255,0.06)', color: '#2E3A52' }}>⌘S</kbd>
+                Save <kbd className="text-[9px] px-1 py-0.5 rounded" style={{ background: 'rgba(255,255,255,0.06)', color: '#8A97B3' }}>⌘S</kbd>
               </button>
               <button
                 onClick={() => runQuery()}
@@ -894,7 +916,7 @@ export default function LearnPage() {
           </div>
 
           {/* ── Monaco Editor ──────────────────────────────────────────────── */}
-          <div className="flex-1 relative h-[200px] md:h-auto" style={{ minHeight: 120 }}>
+          <div className="flex-1 relative" style={{ minHeight: 120 }}>
             {workspace.loading && (
               <div className="absolute inset-0 z-10 flex items-center justify-center gap-3" style={{ background: 'rgba(7,9,15,0.75)' }} role="status" aria-live="polite">
                 <div className="w-5 h-5 rounded-full border-2 animate-spin motion-reduce:animate-none" style={{ borderColor: 'rgba(0,199,190,0.2)', borderTopColor: '#00C7BE' }} />
@@ -930,7 +952,7 @@ export default function LearnPage() {
                 className="px-4 h-full text-xs font-semibold uppercase tracking-wider transition-colors cursor-pointer"
                 style={resultsTab === 'results'
                   ? { color: '#00C7BE', borderBottom: '2px solid #00C7BE' }
-                  : { color: '#5C6B8A' }
+                  : { color: '#8A97B3' }
                 }
               >
                 Results
@@ -940,7 +962,7 @@ export default function LearnPage() {
                 className="px-4 h-full text-xs font-semibold uppercase tracking-wider transition-colors cursor-pointer"
                 style={resultsTab === 'history'
                   ? { color: '#00C7BE', borderBottom: '2px solid #00C7BE' }
-                  : { color: '#5C6B8A' }
+                  : { color: '#8A97B3' }
                 }
               >
                 History
@@ -956,10 +978,10 @@ export default function LearnPage() {
                   </span>
                 )}
                 {resultsTab === 'results' && workspace.results.length > 0 && !resultsCollapsed && (
-                  <span className="flex items-center gap-1 text-xs" style={{ color: '#5C6B8A' }}>
+                  <span className="flex items-center gap-1 text-xs" style={{ color: '#8A97B3' }}>
                     <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#22C55E', display: 'inline-block' }} />
                     {workspace.results.length} {dbType === 'nosql' ? 'doc' : 'row'}{workspace.results.length === 1 ? '' : 's'}
-                    {workspace.lastRunDuration !== null && <span style={{ color: '#2E3A52' }}>· {workspace.lastRunDuration}ms</span>}
+                    {workspace.lastRunDuration !== null && <span style={{ color: '#7A87A5' }}>· {workspace.lastRunDuration}ms</span>}
                   </span>
                 )}
                 {workspace.error && !resultsCollapsed && (
@@ -972,7 +994,7 @@ export default function LearnPage() {
                   onClick={() => setResultsCollapsed(c => !c)}
                   title={resultsCollapsed ? 'Expand results' : 'Collapse results'}
                   className="flex items-center justify-center w-7 h-7 rounded transition-colors cursor-pointer"
-                  style={{ color: '#5C6B8A' }}
+                  style={{ color: '#8A97B3' }}
                 >
                   {resultsCollapsed
                     ? <ChevronUp className="w-3.5 h-3.5" />
@@ -1008,15 +1030,32 @@ export default function LearnPage() {
         </div>
       </div>
 
-      {/* ── Floating Run Button (mobile) ────────────────────────────────────── */}
-      <button
-        onClick={() => runQuery()}
-        className="md:hidden fixed bottom-6 right-6 w-14 h-14 text-white rounded-full shadow-xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all z-50 cursor-pointer"
-        style={{ background: '#00C7BE', color: '#07090F', boxShadow: '0 0 32px rgba(0,199,190,0.4)' }}
-        aria-label="Run Query"
+      {/* ── Bottom tab bar (phones) ─────────────────────────────────────────── */}
+      <nav
+        aria-label="Workspace"
+        className="md:hidden fixed bottom-0 inset-x-0 z-40 h-14 grid grid-cols-3"
+        style={{ background: '#0C1018', borderTop: '1px solid rgba(255,255,255,0.08)' }}
       >
-        <Play className="w-6 h-6 ml-0.5" />
-      </button>
+        {([
+          { id: 'path', label: 'Path', Icon: ListTree },
+          { id: 'lesson', label: 'Lesson', Icon: BookOpen },
+          { id: 'editor', label: 'Editor', Icon: Code2 },
+        ] as const).map(({ id, label, Icon }) => {
+          const active = mobileView === id;
+          return (
+            <button
+              key={id}
+              onClick={() => setMobileView(id)}
+              aria-current={active ? 'page' : undefined}
+              className="flex flex-col items-center justify-center gap-0.5 text-[11px] font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-teal-400"
+              style={{ color: active ? '#00C7BE' : '#8A97B3' }}
+            >
+              <Icon className="w-5 h-5" aria-hidden="true" />
+              {label}
+            </button>
+          );
+        })}
+      </nav>
 
       {/* ── Save Query Modal ─────────────────────────────────────────────────── */}
       {saveQueryModal && (
@@ -1034,7 +1073,7 @@ export default function LearnPage() {
               style={{ background: '#07090F', border: '1px solid rgba(255,255,255,0.1)', color: '#EDF1FA' }}
             />
             <div className="flex gap-2 justify-end">
-              <button onClick={() => setSaveQueryModal(null)} className="px-4 py-2 text-sm cursor-pointer" style={{ color: '#5C6B8A' }}>Cancel</button>
+              <button onClick={() => setSaveQueryModal(null)} className="px-4 py-2 text-sm cursor-pointer" style={{ color: '#8A97B3' }}>Cancel</button>
               <button onClick={commitSaveQuery} disabled={!saveQueryTitle.trim()} className="px-4 py-2 text-sm font-medium rounded-lg cursor-pointer disabled:opacity-40" style={{ background: '#00C7BE', color: '#07090F' }}>
                 <Check className="w-3.5 h-3.5 inline mr-1" />Save
               </button>
@@ -1081,7 +1120,7 @@ function ProjectMenuItem({
       onClick={() => onSelect(project)}
     >
       <div className="flex items-center gap-2 min-w-0">
-        <span className="text-[10px] font-bold uppercase" style={{ color: engineColors[project.engine] ?? '#5C6B8A' }}>
+        <span className="text-[10px] font-bold uppercase" style={{ color: engineColors[project.engine] ?? '#8A97B3' }}>
           {project.engine.slice(0, 2).toUpperCase()}
         </span>
         <span className="text-sm truncate" style={{ color: active ? '#00C7BE' : '#EDF1FA', fontWeight: active ? 500 : 400 }}>
@@ -1096,6 +1135,54 @@ function ProjectMenuItem({
         >
           <Trash2 className="w-3 h-3" />
         </button>
+      )}
+    </div>
+  );
+}
+
+// ── MobileMoreMenu ────────────────────────────────────────────────────────────
+
+/** Phones: the header actions that don't fit (Notes, Dashboard, Seed, Reset). */
+function MobileMoreMenu({ onNotes, onSeed, seeding, onReset }: {
+  onNotes: () => void;
+  onSeed: () => void;
+  seeding: boolean;
+  onReset: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
+  }, [open]);
+
+  const item = 'w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-left min-h-[44px]';
+  const run = (action: () => void) => () => { setOpen(false); action(); };
+
+  return (
+    <div className="relative sm:hidden" ref={ref}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label="More actions"
+        className="flex items-center justify-center w-10 h-10 rounded-md"
+        style={{ background: '#111724', border: '1px solid rgba(255,255,255,0.08)', color: '#EDF1FA' }}
+      >
+        <MoreHorizontal className="w-5 h-5" />
+      </button>
+      {open && (
+        <div role="menu" className="absolute right-0 top-full mt-1 w-48 rounded-lg shadow-xl z-50 py-1" style={{ background: '#111724', border: '1px solid rgba(255,255,255,0.08)', color: '#EDF1FA' }}>
+          <button role="menuitem" className={item} onClick={run(onNotes)}><NotebookPen className="w-4 h-4" style={{ color: '#8A97B3' }} /> Notes</button>
+          <Link role="menuitem" href="/dashboard" className={item}><BarChart3 className="w-4 h-4" style={{ color: '#8A97B3' }} /> Dashboard</Link>
+          <button role="menuitem" className={item} onClick={run(onSeed)} disabled={seeding}><Sprout className="w-4 h-4" style={{ color: '#8A97B3' }} /> {seeding ? 'Seeding…' : 'Seed sample data'}</button>
+          <button role="menuitem" className={item} onClick={run(onReset)} style={{ color: '#EF4444' }}><RotateCcw className="w-4 h-4" /> Reset database</button>
+        </div>
       )}
     </div>
   );

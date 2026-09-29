@@ -1,81 +1,99 @@
-# DB Academy Design System & UI/UX Principles
+# DBAcademy Design System
 
-## 1. Core Philosophy: "IDE-grade Education"
-The central design thesis of DB Academy is to bridge the gap between **educational content** and **professional tooling**. The interface is not designed as a standard content website (like a blog), but as an **Integrated Development Environment (IDE)**.
+How the interface should look and behave. For code and infrastructure, see
+[docs/HANDOFF.md](docs/HANDOFF.md).
 
-### Key Principles
-*   **Immersive Utility**: The user should feel like they are working, not just reading. The code editor is a first-class citizen, equal in importance to the learning material.
-*   **Immediate Feedback**: Every action (running a query, changing settings) should have an instant, visible reaction.
-*   **Distraction-Free Focus**: The UI uses high-contrast separation between panels to allow users to focus on one context (reading vs. coding) at a time while keeping both visible.
+## 1. Direction: "IDE-grade education"
 
----
+DBAcademy looks and works like a developer tool, not a blog. The editor is as
+important as the lesson; both stay visible on wide screens. Every action gets
+an immediate, visible result (a query runs, an answer is checked, progress
+moves). The app is **dark only** (`forcedTheme="dark"` in the root layout), so
+there are no light-mode variants: never write `dark:` classes.
 
-## 2. Visual Identity
+## 2. Tokens
 
-### Color Palette
-We utilize a **Slate-based** neutral palette for structure, ensuring code highlighting stands out.
+Colours live in `src/app/globals.css` as RGB channels and are exposed to
+Tailwind in `tailwind.config.ts`. **Use the token classes**, not hex codes and
+not Tailwind's `slate`/`blue` palette.
 
-*   **Primary Brand**: `Blue-600` (Light Mode) / `Blue-500` (Dark Mode).
-    *   *Usage*: Primary actions (Run), Active tabs, Success states, Links.
-*   **Backgrounds**:
-    *   **Canvas**: `Slate-50` (Light) / `Slate-950` (Dark).
-    *   **Panels**: `White` (Light) / `Slate-900` (Dark).
-    *   *Rationale*: Reduces eye strain during long coding sessions (Dark mode is default-favored/supported).
-*   **Semantic Colors**:
-    *   **Green**: Success/Seeding complete.
-    *   **Red**: Error messages/Destructive actions (Reset DB).
-    *   **Amber/Yellow**: Warnings/Hints.
+| Tailwind name | Value | Use for |
+| --- | --- | --- |
+| `canvas` | `#07090F` | Page background; text on solid accent buttons (`text-canvas`) |
+| `surface` | `#0C1018` | Panels, headers, the code editor background |
+| `card` | `#111724` | Raised elements inside panels, inputs |
+| `card-hover` | `#161E2E` | Hover state of cards |
+| `ink` | `#EDF1FA` | Primary text |
+| `muted` | `#8A97B3` | Secondary text (≈6.5:1 on canvas) |
+| `faint` | `#7A87A5` | Tertiary text, placeholders (≥4.9:1 even on card) |
+| `accent` | `#00C7BE` teal | Primary actions, active states, links, focus rings |
+| `warm` | `#F59E0B` amber | Hints, highlights, marketing CTAs, "not yet" feedback |
+| `success` | `#22C55E` | Passed, complete |
+| `danger` | `#EF4444` | Errors, destructive actions |
+| `line` | white at 7% | Dividers and panel borders (`border-line`); use `border-white/10` for input outlines |
 
-### Typography
-*   **UI Font**: **Inter** (via Google Fonts). clean, modern, and highly legible at small sizes (essential for dense UI).
-*   **Code Font**: **Monospace** (Browser default or Fira Code equivalent).
-    *   *Rationale*: Preserves code alignement and readability.
+Opacity modifiers work on every token except `line` (e.g. `bg-accent/10`
+for tints, `hover:bg-accent/90` on solid buttons).
 
-### Iconography
-*   **Library**: `lucide-react`.
-*   **Style**: 2px stroke, rounded caps. Consistent, professional, and lightweight.
+**Contrast rules (WCAG AA):** text is `ink`, `muted` or `faint`, never
+dimmer. Solid `accent`/`success`/`warm`/`danger` buttons use **`text-canvas`**:
+white on teal or green fails contrast. Drag-handle grips and similar
+decoration may use `#5C6B8A` as a *background*, never as text colour. The
+Monaco editor uses the `dbacademy-dark` theme (`SqlEditor.tsx`), whose
+comment colour is raised to pass AA.
 
----
+Older pages (`/`, `/learn`'s shell, `/dashboard`, `/code`) still set colours
+inline with the same hex values; new code should use token classes.
 
-## 3. Responsive Design Strategy
-Responsiveness is not an afterthought; it is a **fundamental architectural decision** due to the complexity of the "3-Pane" layout (Sidebar, Content, Editor).
+## 3. Typography and icons
 
-### The "Stack vs. Split" Pattern
-We employ a drastic layout shift between Mobile (< 768px) and Desktop (≥ 768px).
+- **Display:** Bricolage Grotesque (`font-display`, `.heading-xl`, `.heading-lg`).
+- **Body:** DM Sans (`font-body`, the default).
+- **Code:** monospace (Fira Code where available).
+- **Icons:** `lucide-react` only. **No emoji as UI icons**, including
+  achievements (the dashboard maps achievement ids to Lucide icons).
 
-#### Desktop Experience (Wide Viewport)
-*   **Layout**: `Flex-Row` (Horizontal).
-*   **Overflow**: `Hidden` (Screen is fixed to `100vh`).
-*   **Scroll Behavior**: Individual panels scroll internally. The page never scrolls.
-*   **Goal**: Maximum information density. All tools usage simultaneously.
+## 4. Layout
 
-#### Mobile Experience (Narrow Viewport)
-*   **Layout**: `Flex-Col` (Vertical Stack).
-*   **Overflow**: `Auto` (Page scrolls natively).
-*   **Sizing**: Panels enforce `min-height` (e.g., `500px`) to ensure usability.
-*   **Goal**: Focused attention. The user scrolls to the section they need (Reading -> Coding -> Viewing Results).
+### Wide screens (≥ 768px)
 
-### Critical Mobile Optimizations
-1.  **Compact Headers**: Non-essential labels (like "Engine:") are hidden on mobile to preserve space for critical controls (Run Button).
-2.  **Navigation as Context**: The Sidebar moves to the top and becomes a navigation anchor/summary rather than a full-height list.
-3.  **Touch Targets**: Buttons and tabs are sized (`py-3`, `min-h-[44px]`) to be finger-friendly.
+Fixed `100vh`; panels scroll internally and the page never does. `/learn` has
+three panes: sidebar (activity bar + learning path / tables / queries /
+designer), lesson (or the welcome panel), and editor + results. Panes resize
+by dragging.
 
----
+### Phones (< 768px)
 
-## 4. Component Architecture
-The UI is built using **Atomic Design** principles, implemented via **Tailwind CSS**.
+One pane at a time, chosen from the **bottom tab bar** (Path / Lesson /
+Editor). The app switches tab for the learner where the next step is obvious:
+opening a lesson → Lesson; "Put in editor" / "Start over" → Editor; Check →
+Lesson (where the verdict is). Header actions that don't fit (Notes,
+Dashboard, Seed, Reset) live in the **More** menu. Touch targets are at least
+44px tall.
 
-*   **Layout Wrapper**: Functions as the layout controller, switching `flex-direction` based on breakpoints.
-*   **LessonView**:
-    *   *Desktop*: `flex-1`, scrolling internal container.
-    *   *Mobile*: Fixed minimum height, flows with page scroll.
-*   **SqlEditor**:
-    *   Uses `monaco-editor` (or similar) wrappers that auto-resize.
-    *   On mobile, it is given a generous dedicated height to prevents "trapped cursor" issues where scrolling maps to the editor instead of the page.
+When adding a panel, define both its wide layout and which phone tab it
+belongs to.
 
-## 5. Implementation Guidelines for Future Features
-When adding new features, follow these rules to maintain design integrity:
+## 5. States and feedback
 
-1.  **Always definition Mobile State**: If adding a new panel, define how it stacks on mobile.
-2.  **Dark Mode First**: Verify all new colors against `Slate-900` backgrounds.
-3.  **No Global Scroll on Desktop**: Never break the `100vh` constraint on desktop. If content is long, put it in a scrollable container (`overflow-auto`).
+Design every state, not just the happy path:
+
+- **Empty** invites the next action ("Nothing run yet. Write a query and press Run").
+- **Loading** keeps the layout: switching engine shows an overlay on the
+  editor, never a blank page.
+- **Error** says what happened and how to fix it (`explainError` adds a
+  plain-language tip to raw SQL errors).
+- **Success** confirms and offers the next step ("Correct! +20 XP", "Next lesson").
+
+Destructive actions (reset, delete) ask first. Anything shown on hover has a
+keyboard or touch equivalent (`focus-visible`, `focus-within`).
+
+## 6. Accessibility checklist for new UI
+
+- Every control reachable by keyboard, with a visible `focus-visible` outline in `accent`.
+- Icon-only buttons have an `aria-label`.
+- Custom widgets expose state (`aria-pressed`, `aria-expanded`, `aria-current`).
+- Results, grading verdicts and save states are announced (`role="status"` / `aria-live`).
+- Animations respect `motion-reduce:`.
+- Check contrast with axe before shipping; the Phase 4 audit found zero
+  colour-contrast failures on `/`, `/learn`, `/dashboard` and the 404 page.

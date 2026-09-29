@@ -20,12 +20,12 @@ export function SiteFooter() {
             </div>
             <div>
               <div className="font-bold tracking-tight font-display text-sm" style={{ color: '#EDF1FA' }}>DBAcademy</div>
-              <div className="text-xs" style={{ color: '#2E3A52' }}>Master Database Engineering</div>
+              <div className="text-xs" style={{ color: '#7A87A5' }}>Master Database Engineering</div>
             </div>
           </div>
 
           {/* Links */}
-          <nav className="flex items-center gap-6 text-sm" style={{ color: '#2E3A52' }}>
+          <nav className="flex items-center gap-6 text-sm" style={{ color: '#7A87A5' }}>
             <Link href="/" className="hover:text-[#EDF1FA] transition-colors cursor-pointer">Home</Link>
             <Link href="/learn" className="hover:text-[#EDF1FA] transition-colors cursor-pointer">App</Link>
             {accounts && <Link href="/pricing" className="hover:text-[#EDF1FA] transition-colors cursor-pointer">Pricing</Link>}
@@ -34,7 +34,7 @@ export function SiteFooter() {
           </nav>
 
           {/* Copy */}
-          <div className="text-xs" style={{ color: '#2E3A52' }}>
+          <div className="text-xs" style={{ color: '#7A87A5' }}>
             © {new Date().getFullYear()} DBAcademy
           </div>
         </div>
