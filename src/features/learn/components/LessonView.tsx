@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { BookOpen, AlertCircle, X, StickyNote, CheckCircle } from 'lucide-react';
+import { BookOpen, Play, X, StickyNote, CheckCircle } from 'lucide-react';
 import { Quiz, QuizQuestion } from './Quiz';
 import { useProgressStore } from '@/stores/progress-store';
 import { useNotesStore, latestLessonNote } from '@/stores/notes-store';
@@ -18,11 +18,13 @@ interface LessonViewProps {
     quiz?: QuizQuestion[];
     moduleId?: string;
     onRunSample?: (query: string) => void;
+    /** True when onRunSample runs the sample; false when it only loads it into the editor. */
+    runsSample?: boolean;
     onClose: () => void;
     onEdit?: (newContent: string) => void;
 }
 
-export const LessonView: React.FC<LessonViewProps> = ({ id, title, content, defaultQuery, quiz, moduleId, onRunSample, onClose, onEdit }) => {
+export const LessonView: React.FC<LessonViewProps> = ({ id, title, content, defaultQuery, quiz, moduleId, onRunSample, runsSample = false, onClose, onEdit }) => {
     const [note, setNote] = useState('');
     const [notesReady, setNotesReady] = useState(false);
     const [noteSaveState, setNoteSaveState] = useState<NoteSaveState>('idle');
@@ -31,8 +33,15 @@ export const LessonView: React.FC<LessonViewProps> = ({ id, title, content, defa
     const [isEditing, setIsEditing] = useState(false);
     const [editedContent, setEditedContent] = useState(content);
     const [showQuiz, setShowQuiz] = useState(false);
-    const [quizCompleted, setQuizCompleted] = useState(false);
+    // Opening a lesson you've already quizzed shows your result, not a fresh start.
+    // (The parent keys this component by lesson id, so this runs per lesson.)
+    const [quizCompleted, setQuizCompleted] = useState(
+        () => useProgressStore.getState().progress.lessonProgress[id]?.quizScore !== undefined
+    );
     const { markLessonComplete, recordQuizScore } = useProgressStore();
+    const lessonProgress = useProgressStore(s => s.progress.lessonProgress[id]);
+    const isComplete = Boolean(lessonProgress?.completed);
+    const bestQuizScore = lessonProgress?.quizScore;
 
     // Lesson notes live in the notes store (IndexedDB, synced when signed in) —
     // the same place the notes drawer reads. Wait for it to load, including
@@ -154,26 +163,26 @@ export const LessonView: React.FC<LessonViewProps> = ({ id, title, content, defa
                 {/* Sample Query */}
                 {!isEditing && defaultQuery && (
                     <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                        <h3 className="flex items-center gap-2 font-bold text-blue-800 dark:text-blue-200 mb-2">
-                            <AlertCircle size={18} />
-                            Try it out
-                        </h3>
-                        <p className="text-sm text-blue-700 dark:text-blue-300 mb-3">
-                            Copy this query to the editor or click &ldquo;Run&rdquo; to see it in action.
-                        </p>
-                        <div className="relative group">
-                            <pre className="bg-slate-800 text-slate-100 p-3 rounded-md text-sm overflow-x-auto font-mono">
-                                {defaultQuery}
-                            </pre>
+                        <div className="flex items-center justify-between gap-3 mb-2">
+                            <h3 className="font-bold text-blue-800 dark:text-blue-200">Try it out</h3>
                             {onRunSample && (
                                 <button
                                     onClick={() => onRunSample(defaultQuery)}
-                                    className="absolute top-2 right-2 bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-1 rounded shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                                    className="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold px-3 py-1.5 rounded shadow-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400"
                                 >
-                                    Run Query
+                                    {runsSample && <Play size={12} aria-hidden="true" />}
+                                    {runsSample ? 'Run it' : 'Load into editor'}
                                 </button>
                             )}
                         </div>
+                        <p className="text-sm text-blue-700 dark:text-blue-300 mb-3">
+                            {runsSample
+                                ? <>This query is already in the editor. Change it and press Run (⌘↵), or run it as-is.</>
+                                : <>Load this example into the editor, then press Run.</>}
+                        </p>
+                        <pre className="bg-slate-800 text-slate-100 p-3 rounded-md text-sm overflow-x-auto font-mono">
+                            {defaultQuery}
+                        </pre>
                     </div>
                 )}
 
@@ -198,23 +207,28 @@ export const LessonView: React.FC<LessonViewProps> = ({ id, title, content, defa
                                 title={`${title} Quiz`}
                                 questions={quiz}
                                 onComplete={(score) => {
-                                    setQuizCompleted(true);
-                                    setShowQuiz(false);
+                                    // Record now; the quiz stays open on its results screen.
                                     recordQuizScore(id, score);
                                     if (score >= 70 && moduleId) {
                                         markLessonComplete(id, moduleId);
                                     }
                                 }}
+                                onContinue={() => {
+                                    setShowQuiz(false);
+                                    setQuizCompleted(true);
+                                }}
                             />
                         ) : (
                             <div className="p-4 bg-green-50 dark:bg-green-900/20 text-center">
                                 <CheckCircle className="w-6 h-6 text-green-500 mx-auto mb-2" />
-                                <p className="text-sm font-medium text-green-700 dark:text-green-300">Quiz completed!</p>
+                                <p className="text-sm font-medium text-green-700 dark:text-green-300">
+                                    Quiz completed{bestQuizScore !== undefined ? ` · best score ${bestQuizScore}%` : ''}
+                                </p>
                                 <button
                                     onClick={() => { setQuizCompleted(false); setShowQuiz(true); }}
-                                    className="text-xs text-slate-500 hover:text-slate-700 mt-2 underline"
+                                    className="text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 mt-2 underline"
                                 >
-                                    Retry
+                                    Retake quiz
                                 </button>
                             </div>
                         )}
@@ -223,13 +237,19 @@ export const LessonView: React.FC<LessonViewProps> = ({ id, title, content, defa
 
                 {/* Mark Complete Button */}
                 {!isEditing && moduleId && (
-                    <div className="flex justify-end">
-                        <button
-                            onClick={() => markLessonComplete(id, moduleId)}
-                            className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
-                        >
-                            <CheckCircle className="w-4 h-4" /> Mark as Complete
-                        </button>
+                    <div className="flex justify-end" aria-live="polite">
+                        {isComplete ? (
+                            <p className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-green-700 dark:text-green-400">
+                                <CheckCircle className="w-4 h-4" aria-hidden="true" /> Lesson complete
+                            </p>
+                        ) : (
+                            <button
+                                onClick={() => markLessonComplete(id, moduleId)}
+                                className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-400"
+                            >
+                                <CheckCircle className="w-4 h-4" aria-hidden="true" /> Mark as complete
+                            </button>
+                        )}
                     </div>
                 )}
 

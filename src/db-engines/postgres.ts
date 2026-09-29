@@ -1,5 +1,6 @@
 import { PGlite } from '@electric-sql/pglite';
 import { DatabaseEngine, TableDefinition, QueryResult } from './types';
+import { MYSTERY_TABLES, SEED_VERSION, USERS_TABLE, applySeed } from './seed/mystery';
 
 export class PostgresEngine implements DatabaseEngine {
     type = 'postgres' as const;
@@ -17,57 +18,61 @@ export class PostgresEngine implements DatabaseEngine {
     async init() {
         this.db = this.idbPath ? new PGlite(this.idbPath) : new PGlite();
         await this.db.waitReady;
+        await this.ensureSeed();
+    }
 
-        // With an idbPath the database persists across reloads, so seed rows
-        // only on first creation — re-seeding on every init would wipe the
-        // user's edits to this table.
-        const existing = await this.db.query<{ t: string | null }>(
-            `SELECT to_regclass('public.crime_scene_report')::text AS t`
+    /**
+     * Fill in the sample tables once per SEED_VERSION. With an idbPath the
+     * database persists across reloads, so this only fills tables that are
+     * empty — it never wipes the learner's edits. The version is kept in a
+     * private `dbacademy` schema so it stays out of the Tables panel.
+     */
+    private async ensureSeed() {
+        const db = this.db!;
+        await db.exec(`
+      CREATE SCHEMA IF NOT EXISTS dbacademy;
+      CREATE TABLE IF NOT EXISTS dbacademy.meta (key text PRIMARY KEY, value text NOT NULL);
+    `);
+        const res = await db.query<{ value: string }>(`SELECT value FROM dbacademy.meta WHERE key = 'seed_version'`);
+        if (Number(res.rows[0]?.value ?? 0) >= SEED_VERSION) return;
+
+        await applySeed({
+            exec: async sql => { await db.exec(sql); },
+            rowCount: async table => {
+                const r = await db.query<{ n: number }>(`SELECT count(*)::int AS n FROM ${table}`);
+                return r.rows[0].n;
+            },
+        }, [...MYSTERY_TABLES, USERS_TABLE]);
+
+        await db.query(
+            `INSERT INTO dbacademy.meta (key, value) VALUES ('seed_version', $1)
+       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`,
+            [String(SEED_VERSION)],
         );
-        if (!existing.rows[0]?.t) {
-            await this.db.exec(`
-      CREATE TABLE crime_scene_report (
-        date integer,
-        type text,
-        description text,
-        city text
-      );
-      INSERT INTO crime_scene_report VALUES (20180115, 'murder', 'Security footage shows a man walking oddly.', 'SQL City');
-      INSERT INTO crime_scene_report VALUES (20180115, 'theft', 'A donut was stolen.', 'SQL City');
-      INSERT INTO crime_scene_report VALUES (20180215, 'murder', 'Another one.', 'New York');
-    `);
-        }
+    }
 
+    /**
+     * Wipe everything and re-seed. `init()` alone can't do this for a
+     * persisted project — it just reopens the same stored database.
+     */
+    async reset() {
+        if (!this.db) throw new Error('DB not initialized');
         await this.db.exec(`
-
-      CREATE TABLE IF NOT EXISTS drivers_license (
-        id integer PRIMARY KEY,
-        age integer,
-        height integer,
-        eye_color text,
-        hair_color text,
-        gender text,
-        plate_number text,
-        car_make text,
-        car_model text
-      );
-
-       CREATE TABLE IF NOT EXISTS person (
-            id integer PRIMARY KEY,
-            name text,
-            license_id integer,
-            address_number integer,
-            address_street_name text,
-            ssn text
-      );
+      DROP SCHEMA IF EXISTS public CASCADE;
+      CREATE SCHEMA public;
+      DROP SCHEMA IF EXISTS dbacademy CASCADE;
     `);
+        await this.ensureSeed();
     }
 
     async execute(query: string): Promise<QueryResult> {
         if (!this.db) throw new Error('DB not initialized');
-        const res = await this.db.query(query);
-        const columns = res.fields.map(f => f.name);
-        return { columns, rows: res.rows };
+        // exec (simple protocol) accepts several statements; query() only one.
+        const results = await this.db.exec(query);
+        // Several statements → show the last one that returned columns.
+        const last = [...results].reverse().find(r => r.fields.length > 0);
+        if (!last) return { columns: [], rows: [] };
+        return { columns: last.fields.map(f => f.name), rows: last.rows };
     }
 
     async serialize(): Promise<Uint8Array> {

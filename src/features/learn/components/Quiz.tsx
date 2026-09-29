@@ -14,10 +14,13 @@ export interface QuizQuestion {
 interface QuizProps {
   title: string;
   questions: QuizQuestion[];
+  /** Called once when the last answer is in, with the score as a percentage. */
   onComplete: (score: number) => void;
+  /** Leave the results screen and go back to the lesson. */
+  onContinue: () => void;
 }
 
-export const Quiz: React.FC<QuizProps> = ({ title, questions, onComplete }) => {
+export const Quiz: React.FC<QuizProps> = ({ title, questions, onComplete, onContinue }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showExplanation, setShowExplanation] = useState(false);
@@ -41,7 +44,7 @@ export const Quiz: React.FC<QuizProps> = ({ title, questions, onComplete }) => {
       setSelectedAnswer(null);
       setShowExplanation(false);
     } else {
-      const finalScore = Math.round(((score + (selectedAnswer === currentQuestion.correctIndex ? 0 : 0)) / questions.length) * 100);
+      const finalScore = Math.round((score / questions.length) * 100);
       setCompleted(true);
       onComplete(finalScore);
     }
@@ -60,7 +63,7 @@ export const Quiz: React.FC<QuizProps> = ({ title, questions, onComplete }) => {
     const passed = percentage >= 70;
 
     return (
-      <div className="p-6 text-center">
+      <div className="p-6 text-center" role="status">
         <div className={`w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center ${passed ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
           {passed ? (
             <Trophy className="w-8 h-8 text-green-400" />
@@ -75,20 +78,23 @@ export const Quiz: React.FC<QuizProps> = ({ title, questions, onComplete }) => {
           You scored <span className={`font-bold ${passed ? 'text-green-400' : 'text-red-400'}`}>{score}/{questions.length}</span> ({percentage}%)
         </p>
         <p className="text-sm text-slate-500 mb-6">
-          {passed ? 'You passed! Great work.' : 'You need 70% to pass. Try again!'}
+          {passed ? 'You passed, and this lesson is marked complete.' : 'You need 70% to pass. Reread the lesson, then try again.'}
         </p>
         <div className="flex gap-3 justify-center">
           <button
             onClick={handleRetry}
             className="px-4 py-2 bg-slate-800 border border-slate-700 text-slate-300 rounded-lg hover:bg-slate-700 transition-colors text-sm font-medium"
           >
-            Retry Quiz
+            Retake quiz
           </button>
-          {passed && (
-            <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium">
-              Continue
-            </button>
-          )}
+          <button
+            onClick={onContinue}
+            className={passed
+              ? 'px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium'
+              : 'px-4 py-2 text-slate-300 rounded-lg hover:bg-slate-800 transition-colors text-sm font-medium'}
+          >
+            {passed ? 'Continue' : 'Back to lesson'}
+          </button>
         </div>
       </div>
     );

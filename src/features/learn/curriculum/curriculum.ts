@@ -38,7 +38,9 @@ Retrieve the crime scene report for the murder that happened on **Jan 15, 2018**
 ### Hints
 - Use the \`crime_scene_report\` table.
 - Filter by \`city\` and \`date\`.
-- Remember that SQL dates are typically formatted as integers in this database.
+- Dates in this database are stored as integers in \`YYYYMMDD\` form, so Jan 15, 2018 is \`20180115\`.
+
+Read the murder report's **description** carefully. It tells you where to look next.
                 `,
                 defaultQuery: `SELECT * FROM crime_scene_report 
 WHERE city = 'SQL City' 
@@ -66,10 +68,19 @@ AND date = 20180115;`,
                 content: `
 # Finding Witnesses
 
-Based on the crime scene report, you need to find witnesses. The report mentions witnesses who live on specific streets.
+The crime scene report mentions two witnesses.
 
 ## Your Task
-Find all people who live on **Northwestern Dr** — sort them by address number (descending) to find who lives closest to the scene.
+1. The first witness lives in the **highest-numbered house on Northwestern Dr**. Sort by \`address_number\` descending: the first row is your witness.
+2. The second witness is named **Annabel** and lives on **Franklin Ave**. Try it yourself:
+
+\`\`\`sql
+SELECT * FROM person
+WHERE name LIKE 'Annabel%'
+AND address_street_name = 'Franklin Ave';
+\`\`\`
+
+Why filter on the street too? Run it without that line and see who else turns up.
 
 ### Schema Reminder
 - \`person\` table has: id, name, license_id, address_number, address_street_name, ssn
@@ -84,10 +95,10 @@ ORDER BY address_number DESC;`
                 content: `
 # Interview Transcripts
 
-Now that you've identified potential witnesses, check their interview transcripts.
+You have two witnesses. Time to read what they told the police.
 
 ## Your Task
-Look up the interview transcripts for the people you found. Use a JOIN to connect \`person\` and \`interview\` tables.
+Read both witnesses' interview transcripts. Use a JOIN to connect the \`person\` and \`interview\` tables. Note every clue they give you; you'll need them all in the next lesson.
 
 ### Joins Syntax
 \`\`\`sql
@@ -99,7 +110,8 @@ WHERE p.name = 'Witness Name';
                 `,
                 defaultQuery: `SELECT p.name, i.transcript
 FROM person p
-JOIN interview i ON p.id = i.person_id;`,
+JOIN interview i ON p.id = i.person_id
+WHERE p.name IN ('Morris Kettle', 'Annabel Voss');`,
                 quiz: [
                     {
                         id: 'q1-3-1',
@@ -114,6 +126,61 @@ JOIN interview i ON p.id = i.person_id;`,
                         options: ['To filter results after joining', 'To specify which columns to display', 'To define the join condition', 'To sort the results'],
                         correctIndex: 2,
                         explanation: 'The ON clause specifies the condition that determines how the tables are related.'
+                    }
+                ]
+            },
+            {
+                id: '1-4',
+                title: 'Catch the Killer',
+                content: `
+# Catch the Killer
+
+The witnesses gave you four clues:
+
+1. The killer is a **gold** member of the Get Fit Now Gym.
+2. Their membership number starts with **"G7"**.
+3. The killer is a **man**.
+4. His car's plate contains **"K9"**.
+
+The query in the editor already joins gym members, people and driver's licenses, and applies the first two clues. **Three suspects** are left.
+
+## Your Task
+Add two more conditions to the \`WHERE\` clause for clues 3 and 4, until only **one** person is left.
+
+### Hints
+- Gender is in \`drivers_license.gender\`.
+- Use \`LIKE '%K9%'\` to match text anywhere in the plate.
+
+## Make your accusation
+When you have a name, check it (replace the name):
+
+\`\`\`sql
+SELECT verdict FROM solution
+WHERE code = hex(upper('Your Suspect'));
+\`\`\`
+
+A verdict means you cracked the case. **No rows** means you have the wrong person, so go back over the clues.
+                `,
+                defaultQuery: `SELECT p.name, g.id AS member_id, d.gender, d.plate_number, d.car_make
+FROM get_fit_now_member g
+JOIN person p ON p.id = g.person_id
+JOIN drivers_license d ON d.id = p.license_id
+WHERE g.membership_status = 'gold'
+  AND g.id LIKE 'G7%';`,
+                quiz: [
+                    {
+                        id: 'q1-4-1',
+                        question: 'Which pattern matches a plate with "K9" anywhere in it?',
+                        options: ["LIKE 'K9%'", "LIKE '%K9'", "LIKE '%K9%'", "= 'K9'"],
+                        correctIndex: 2,
+                        explanation: "% matches any run of characters, so '%K9%' allows anything before and after K9."
+                    },
+                    {
+                        id: 'q1-4-2',
+                        question: 'You join three tables. How many ON conditions do you need?',
+                        options: ['One', 'Two', 'Three', 'None'],
+                        correctIndex: 1,
+                        explanation: 'Each JOIN adds one table and needs its own ON condition: three tables, two joins.'
                     }
                 ]
             }
@@ -392,6 +459,10 @@ Create a students table.
     enrolled_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
+INSERT INTO students (name, email, grade) VALUES
+    ('Ada Lovelace', 'ada@example.com', 92),
+    ('Alan Turing', 'alan@example.com', 88);
+
 SELECT * FROM students;`,
                 quiz: [
                     {
@@ -420,23 +491,28 @@ Foreign keys create relationships between tables, enforcing referential integrit
 
 ## Syntax
 \`\`\`sql
-CREATE TABLE orders (
+CREATE TABLE child_table (
     id INTEGER PRIMARY KEY,
-    user_id INTEGER,
-    FOREIGN KEY (user_id) REFERENCES users(id)
+    parent_id INTEGER,
+    FOREIGN KEY (parent_id) REFERENCES parent_table(id)
 );
 \`\`\`
 
 ## Practice
-Create an orders table with a foreign key.
+Create a \`case_notes\` table whose \`person_id\` must point at a row in \`person\`, add a note, then join it back to see who the note is about.
                 `,
-                defaultQuery: `CREATE TABLE IF NOT EXISTS orders (
+                defaultQuery: `CREATE TABLE IF NOT EXISTS case_notes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    product TEXT NOT NULL,
-    amount REAL,
-    FOREIGN KEY (user_id) REFERENCES users(id)
-);`
+    person_id INTEGER NOT NULL,
+    note TEXT NOT NULL,
+    FOREIGN KEY (person_id) REFERENCES person(id)
+);
+
+INSERT INTO case_notes (person_id, note) VALUES (32, 'Refused to answer questions.');
+
+SELECT p.name, n.note
+FROM case_notes n
+JOIN person p ON p.id = n.person_id;`
             }
         ]
     },
@@ -462,7 +538,7 @@ PostgreSQL is the world's most advanced open-source relational database.
 - Extensible with custom functions
 
 ## Your First Query
-Use the **Seed Data** button first, then query the data!
+This database comes with a \`users\` table. Run the query to see the first 10 users.
                 `,
                 defaultQuery: `SELECT * FROM users LIMIT 10;`,
                 quiz: [
@@ -493,9 +569,9 @@ Use the **Seed Data** button first, then query the data!
 | DECIMAL(p,s) | Exact numeric |
 
 ## Practice
-Create a table using various types.
+Create a table that uses several of these types, add two rows, and read them back.
                 `,
-                defaultQuery: `CREATE TABLE IF NOT EXISTS products (
+                defaultQuery: `CREATE TABLE IF NOT EXISTS inventory (
     id SERIAL PRIMARY KEY,
     name TEXT NOT NULL,
     price DECIMAL(10,2),
@@ -503,11 +579,11 @@ Create a table using various types.
     created_at TIMESTAMP DEFAULT NOW()
 );
 
-INSERT INTO products (name, price, metadata) VALUES 
+INSERT INTO inventory (name, price, metadata) VALUES 
 ('Widget', 9.99, '{"color": "blue"}'),
 ('Gadget', 24.99, '{"color": "red"}');
 
-SELECT * FROM products;`
+SELECT * FROM inventory;`
             },
             {
                 id: 'pg-1-3',
@@ -524,6 +600,7 @@ SELECT * FROM products;`
 | TRIM(s) | Remove whitespace |
 
 ## Practice
+Show each user's name in upper case next to its length. Then try swapping in \`LOWER\` or \`CONCAT(name, ' <', email, '>')\`.
                 `,
                 defaultQuery: `SELECT 
     name,
@@ -587,6 +664,7 @@ SELECT * FROM cte_name;
 \`\`\`
 
 ## Practice
+Use a CTE to work out each user's name length, then keep only the long names (more than 15 characters).
                 `,
                 defaultQuery: `WITH name_lengths AS (
     SELECT name, LENGTH(name) as name_len
@@ -615,13 +693,13 @@ Data is stored as **documents** (JSON objects) in **collections**.
 
 ## Basic Operations
 \`\`\`javascript
-db.collection.find({})           // Find all
-db.collection.find({ key: val }) // Find with filter
-db.collection.insert({ ... })    // Insert document
+db.collection.find({})              // Find all
+db.collection.find({ key: val })    // Find with filter
+db.collection.insertOne({ ... })    // Insert a document
 \`\`\`
 
 ## Your Task
-Seed data first, then find all users with role "admin".
+Find all users with role "admin".
                 `,
                 defaultQuery: `db.users.find({ role: "admin" })`,
                 quiz: [
@@ -640,19 +718,25 @@ Seed data first, then find all users with role "admin".
                 content: `
 # Inserting Documents
 
-## Single Insert
+## One document
 \`\`\`javascript
-db.collection.insert({ name: "Alice", age: 30 })
+db.collection.insertOne({ name: "Alice", age: 30 })
+\`\`\`
+
+## Several at once
+\`\`\`javascript
+db.collection.insertMany([{ name: "Bo" }, { name: "Cy" }])
 \`\`\`
 
 ## Key Concepts
 - No fixed schema required
-- Each document gets a unique \`_id\`
+- Each document gets a unique \`_id\` (returned as \`insertedId\`)
 - Fields can be any JSON type
 
 ## Practice
+Insert a new moderator. Then run \`db.users.find({ role: "moderator" })\` to check it's there.
                 `,
-                defaultQuery: `db.users.insert({ 
+                defaultQuery: `db.users.insertOne({ 
     name: "Jane Smith", 
     email: "jane@example.com", 
     role: "moderator", 
@@ -722,8 +806,9 @@ Store IDs pointing to other collections:
 - Many-to-many relationships
 
 ## Practice
+Insert a customer with an embedded address and order list, then query it with \`db.customers.find({ "address.city": "Springfield" })\`.
                 `,
-                defaultQuery: `db.customers.insert({
+                defaultQuery: `db.customers.insertOne({
     name: "Alice Johnson",
     email: "alice@example.com",
     address: {

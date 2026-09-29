@@ -181,10 +181,12 @@ export default function CodePage() {
       id: m.id,
       title: m.title,
       engine: m.engine,
+      builtIn: true,
       lessons: m.lessons.map(l => ({
         id: l.id,
         title: l.title,
         completed: Boolean(progress.lessonProgress[l.id]?.completed),
+        builtIn: true,
       })),
     })));
     setActiveLesson(null);
@@ -507,6 +509,7 @@ export default function CodePage() {
           style={{ borderLeft: '1px solid rgba(255,255,255,0.06)' }}>
           {activeLesson ? (
             <LessonView
+              key={activeLesson.id}
               id={activeLesson.id}
               title={activeLesson.title}
               content={activeLesson.content}

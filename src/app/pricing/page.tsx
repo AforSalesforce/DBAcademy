@@ -18,7 +18,7 @@ const PLANS = [
       { text: 'PostgreSQL & SQLite engines', included: true },
       { text: 'Basic progress tracking', included: true },
       { text: 'Community support', included: true },
-      { text: 'All 30+ modules', included: false },
+      { text: 'All modules', included: false },
       { text: 'NoSQL engine', included: false },
       { text: 'Quizzes & certificates', included: false },
       { text: 'Priority support', included: false },
@@ -33,7 +33,7 @@ const PLANS = [
     description: 'Everything for serious learners',
     popular: true,
     features: [
-      { text: 'All 30+ modules & lessons', included: true },
+      { text: 'All modules & lessons', included: true },
       { text: 'All database engines', included: true },
       { text: 'Advanced progress tracking', included: true },
       { text: 'Quizzes & assessments', included: true },

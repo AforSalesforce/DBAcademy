@@ -10,6 +10,8 @@ export interface Lesson {
     id: string;
     title: string;
     completed: boolean;
+    /** Part of the shipped curriculum: can't be deleted. */
+    builtIn?: boolean;
 }
 
 export interface Module {
@@ -17,6 +19,8 @@ export interface Module {
     title: string;
     lessons: Lesson[];
     engine?: EngineType;
+    /** Part of the shipped curriculum: can't be deleted. */
+    builtIn?: boolean;
 }
 
 interface SidebarProps {
@@ -92,7 +96,7 @@ const Sidebar: React.FC<SidebarProps> = ({ modules, activeLessonId, onAddModule,
                                 <span className="uppercase tracking-wider text-xs">{module.title}</span>
                             </div>
                             <div className={cn(
-                                "flex items-center gap-0.5 transition-opacity",
+                                "flex items-center gap-0.5 transition-opacity focus-within:opacity-100",
                                 hoveredModuleId === module.id ? "opacity-100" : "opacity-0"
                             )}>
                                 <button
@@ -103,10 +107,11 @@ const Sidebar: React.FC<SidebarProps> = ({ modules, activeLessonId, onAddModule,
                                     }}
                                     className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors"
                                     title="Add Lesson"
+                                    aria-label={`Add a lesson to ${module.title}`}
                                 >
                                     <Plus size={14} />
                                 </button>
-                                {onRemoveModule && (
+                                {onRemoveModule && !module.builtIn && (
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
@@ -117,6 +122,7 @@ const Sidebar: React.FC<SidebarProps> = ({ modules, activeLessonId, onAddModule,
                                         }}
                                         className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 rounded transition-colors text-slate-400"
                                         title="Delete Module"
+                                        aria-label={`Delete ${module.title}`}
                                     >
                                         <Trash2 size={14} />
                                     </button>
@@ -148,14 +154,17 @@ const Sidebar: React.FC<SidebarProps> = ({ modules, activeLessonId, onAddModule,
                                                 <Circle size={16} className={cn("text-slate-400 shrink-0", isActive && "text-blue-500")} />
                                             )}
                                             <span className="truncate flex-1" title={lesson.title}>{lesson.title}</span>
-                                            {onRemoveLesson && (
+                                            {lesson.completed && <span className="sr-only">(completed)</span>}
+                                            {onRemoveLesson && !lesson.builtIn && (
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
+                                                        if (!window.confirm(`Delete the lesson "${lesson.title}"? This can't be undone.`)) return;
                                                         onRemoveLesson(module.id, lesson.id);
                                                     }}
+                                                    aria-label={`Delete ${lesson.title}`}
                                                     className={cn(
-                                                        "p-0.5 rounded transition-all text-slate-400 shrink-0",
+                                                        "p-0.5 rounded transition-all text-slate-400 shrink-0 focus:opacity-100",
                                                         "hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400",
                                                         isHovered ? "opacity-100" : "opacity-0"
                                                     )}

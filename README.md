@@ -7,7 +7,7 @@ Master PostgreSQL, SQLite, and NoSQL with guided lessons, quizzes, and a profess
 ## Features
 
 - **Multi-Engine Support** — PostgreSQL (PGlite), SQLite (WASM), and NoSQL, all running client-side
-- **30+ Interactive Lessons** — Structured curriculum from basics to advanced topics
+- **22 Interactive Lessons** — A SQL murder mystery, then joins, schema design, PostgreSQL window functions and CTEs, and document databases
 - **Quiz & Assessment System** — Test knowledge with immediate feedback and explanations
 - **Gamified Progress** — XP, levels, streaks, achievements, and completion tracking
 - **Professional SQL Editor** — Monaco editor with syntax highlighting and keyboard shortcuts

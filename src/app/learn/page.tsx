@@ -37,7 +37,8 @@ const INITIAL_MODULES_STATE: Module[] = CURRICULUM.map(m => ({
   id: m.id,
   title: m.title,
   engine: m.engine,
-  lessons: m.lessons.map(l => ({ id: l.id, title: l.title, completed: false })),
+  builtIn: true,
+  lessons: m.lessons.map(l => ({ id: l.id, title: l.title, completed: false, builtIn: true })),
 }));
 
 function mergeWithCurriculum(saved: Module[]): Module[] {
@@ -94,6 +95,7 @@ export default function LearnPage() {
 
   // ── Stores ─────────────────────────────────────────────────────────────────
   const { updateStreak } = useProgressStore();
+  const lessonProgress = useProgressStore(s => s.progress.lessonProgress);
   const { profile } = useProfile();
   // Plan limits only exist alongside paid plans. With accounts/payments off,
   // everything is local to the browser, so there's nothing to meter or upgrade.
@@ -270,7 +272,14 @@ export default function LearnPage() {
   };
 
   const handleDeleteProject = async (id: string) => {
+    const name = projectStore.projects.find(p => p.id === id)?.name ?? 'this project';
+    if (!window.confirm(`Delete "${name}" and its database? This can't be undone.`)) return;
     await projectStore.deleteProject(id);
+  };
+
+  const handleResetDb = () => {
+    if (!window.confirm('Reset this database to the original sample data? Tables and rows you created will be deleted.')) return;
+    workspace.handleResetDb();
   };
 
   // ── Seeding (wraps the workspace hook to also switch to the Tables tab) ───
@@ -349,16 +358,23 @@ export default function LearnPage() {
       if (module?.engine && module.engine !== dbType) {
         // Switch to the matching default playground for that engine
         const playgroundId = DEFAULT_PROJECT_IDS[module.engine] ?? DEFAULT_PROJECT_IDS.sqlite!;
+        if (fullLesson.defaultQuery) workspace.setQueryForProject(playgroundId, fullLesson.defaultQuery);
         projectStore.setActiveProject(playgroundId);
+      } else if (fullLesson.defaultQuery) {
+        workspace.setQuery(fullLesson.defaultQuery);
       }
-      if (fullLesson.defaultQuery) workspace.setQuery(fullLesson.defaultQuery);
     } else {
       const savedContent = userLessons[lesson.id];
       setActiveLesson({ id: lesson.id, title: lesson.title, content: savedContent || `# ${lesson.title}\n\nThis is a user-created lesson. Add content here.` });
     }
   };
 
-  const activeModules = modules.filter(m => m.engine === dbType);
+  const activeModules = modules
+    .filter(m => m.engine === dbType)
+    .map(m => ({
+      ...m,
+      lessons: m.lessons.map(l => ({ ...l, completed: Boolean(lessonProgress[l.id]?.completed) })),
+    }));
   const activeProject = projectStore.getActiveProject();
 
   // ── Loading screen ─────────────────────────────────────────────────────────
@@ -519,7 +535,7 @@ export default function LearnPage() {
           <button
             className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors cursor-pointer"
             style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#EF4444' }}
-            onClick={workspace.handleResetDb}
+            onClick={handleResetDb}
             title="Reset database"
           >
             <RotateCcw className="w-3.5 h-3.5" /> Reset
@@ -654,13 +670,15 @@ export default function LearnPage() {
         {activeLesson && (
           <div className="flex-1 w-full md:w-auto min-w-0 md:min-w-[240px] md:overflow-auto" style={{ background: '#0C1018', borderRight: '1px solid rgba(255,255,255,0.06)' }}>
             <LessonView
+              key={activeLesson.id}
               id={activeLesson.id}
               title={activeLesson.title}
               content={activeLesson.content}
               defaultQuery={activeLesson.defaultQuery}
               quiz={activeLesson.quiz}
               moduleId={activeLessonModuleId || undefined}
-              onRunSample={q => workspace.setQuery(q)}
+              onRunSample={q => { workspace.setQuery(q); runQuery(q); }}
+              runsSample
               onClose={() => setActiveLesson(null)}
               onEdit={
                 !CURRICULUM.some(m => m.lessons.some(l => l.id === activeLesson.id))
@@ -789,7 +807,7 @@ export default function LearnPage() {
                 {resultsTab === 'results' && workspace.results.length > 0 && !resultsCollapsed && (
                   <span className="flex items-center gap-1 text-xs" style={{ color: '#5C6B8A' }}>
                     <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#22C55E', display: 'inline-block' }} />
-                    {dbType === 'nosql' ? `${workspace.results.length} docs` : `${workspace.results.length} rows`}
+                    {workspace.results.length} {dbType === 'nosql' ? 'doc' : 'row'}{workspace.results.length === 1 ? '' : 's'}
                     {workspace.lastRunDuration !== null && <span style={{ color: '#2E3A52' }}>· {workspace.lastRunDuration}ms</span>}
                   </span>
                 )}
@@ -815,7 +833,15 @@ export default function LearnPage() {
 
             {!resultsCollapsed && (
               <div className="flex-1 overflow-auto">
-                {resultsTab === 'results' && <ResultsTable results={workspace.results} error={workspace.error} />}
+                {resultsTab === 'results' && (
+                  <ResultsTable
+                    results={workspace.results}
+                    error={workspace.error}
+                    columns={workspace.resultColumns}
+                    message={workspace.resultMessage}
+                    hasRun={workspace.hasRun}
+                  />
+                )}
                 {resultsTab === 'history' && (
                   <RunHistory
                     activeProjectId={projectStore.activeProjectId}

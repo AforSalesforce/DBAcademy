@@ -1,10 +1,14 @@
 import Link from 'next/link';
 import { accountsEnabled } from '@/lib/features';
+import { CURRICULUM } from '@/features/learn/curriculum/curriculum';
 import {
   Database, GraduationCap, Zap, BookOpen, BarChart3, Code2,
   ShieldCheck, Globe, ArrowRight, Play, Terminal, Table, GitBranch,
   BrainCircuit,
 } from 'lucide-react';
+
+/** Real counts, so the page never promises more than the product has. */
+const LESSON_COUNT = CURRICULUM.reduce((n, m) => n + m.lessons.length, 0);
 
 const FEATURES = [
   {
@@ -21,8 +25,8 @@ const FEATURES = [
     color: 'text-[#F59E0B]',
     bg: 'rgba(245, 158, 11, 0.08)',
     border: 'rgba(245, 158, 11, 0.18)',
-    title: '30+ Guided Modules',
-    description: 'Structured curriculum from SQL basics to advanced query optimization and schema design.',
+    title: `${LESSON_COUNT} Guided Lessons`,
+    description: 'Start by solving a murder mystery in SQL, then work through joins, schema design, window functions and document databases.',
     rotate: 'sm:rotate-1',
   },
   {
@@ -74,7 +78,7 @@ const MARQUEE_ITEMS = [
   { icon: BrainCircuit, text: 'Python' },
   { icon: GitBranch, text: 'Schema Designer' },
   { icon: BarChart3, text: 'Progress Tracking' },
-  { icon: BookOpen, text: '30+ Modules' },
+  { icon: BookOpen, text: `${LESSON_COUNT} Lessons` },
   { icon: ShieldCheck, text: 'Zero Setup' },
 ];
 
@@ -183,7 +187,7 @@ export default function HomePage() {
               {/* Micro stats */}
               <div className="stagger-5 flex items-center gap-6 mt-10">
                 {[
-                  { value: '30+', label: 'modules' },
+                  { value: String(LESSON_COUNT), label: 'lessons' },
                   { value: '3', label: 'DB engines' },
                   { value: '0', label: 'setup needed' },
                 ].map(s => (
@@ -208,72 +212,65 @@ export default function HomePage() {
                 <div className="w-3 h-3 rounded-full" style={{ background: '#22C55E', opacity: 0.7 }} />
                 <span className="ml-3 text-xs font-mono" style={{ color: '#2E3A52' }}>playground.sql</span>
               </div>
-              {/* Code */}
+              {/* Code — a real query against the lesson data, with its real output */}
               <div className="p-5 font-mono text-sm leading-7">
-                <div style={{ color: '#5C6B8A' }}>-- Find top customers by revenue</div>
+                <div style={{ color: '#8A97B3' }}>-- Where is crime happening?</div>
                 <div>
                   <span style={{ color: '#00C7BE' }}>SELECT</span>
-                  <span style={{ color: '#EDF1FA' }}> c.name,</span>
+                  <span style={{ color: '#EDF1FA' }}> city,</span>
                 </div>
                 <div>
                   <span style={{ color: '#EDF1FA' }}>       </span>
                   <span style={{ color: '#00C7BE' }}>COUNT</span>
-                  <span style={{ color: '#EDF1FA' }}>(o.id) </span>
+                  <span style={{ color: '#EDF1FA' }}>(*) </span>
                   <span style={{ color: '#00C7BE' }}>AS</span>
-                  <span style={{ color: '#F59E0B' }}> orders</span>
+                  <span style={{ color: '#F59E0B' }}> reports</span>
                   <span style={{ color: '#EDF1FA' }}>,</span>
                 </div>
                 <div>
                   <span style={{ color: '#EDF1FA' }}>       </span>
                   <span style={{ color: '#00C7BE' }}>SUM</span>
-                  <span style={{ color: '#EDF1FA' }}>(o.total) </span>
+                  <span style={{ color: '#EDF1FA' }}>(type = </span>
+                  <span style={{ color: '#F59E0B' }}>&apos;murder&apos;</span>
+                  <span style={{ color: '#EDF1FA' }}>) </span>
                   <span style={{ color: '#00C7BE' }}>AS</span>
-                  <span style={{ color: '#F59E0B' }}> revenue</span>
+                  <span style={{ color: '#F59E0B' }}> murders</span>
                 </div>
                 <div>
                   <span style={{ color: '#00C7BE' }}>FROM</span>
-                  <span style={{ color: '#EDF1FA' }}> customers c</span>
-                </div>
-                <div>
-                  <span style={{ color: '#00C7BE' }}>JOIN</span>
-                  <span style={{ color: '#EDF1FA' }}> orders o </span>
-                  <span style={{ color: '#00C7BE' }}>ON</span>
-                  <span style={{ color: '#EDF1FA' }}> c.id = o.customer_id</span>
+                  <span style={{ color: '#EDF1FA' }}> crime_scene_report</span>
                 </div>
                 <div>
                   <span style={{ color: '#00C7BE' }}>GROUP BY</span>
-                  <span style={{ color: '#EDF1FA' }}> c.name</span>
+                  <span style={{ color: '#EDF1FA' }}> city</span>
                 </div>
                 <div>
                   <span style={{ color: '#00C7BE' }}>ORDER BY</span>
-                  <span style={{ color: '#F59E0B' }}> revenue</span>
+                  <span style={{ color: '#F59E0B' }}> reports</span>
                   <span style={{ color: '#00C7BE' }}> DESC</span>
-                </div>
-                <div>
-                  <span style={{ color: '#00C7BE' }}>LIMIT</span>
-                  <span style={{ color: '#EDF1FA' }}> 10;</span>
+                  <span style={{ color: '#EDF1FA' }}>, city;</span>
                 </div>
               </div>
               {/* Results preview */}
               <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                <div className="px-5 py-2 text-xs font-semibold flex items-center gap-2" style={{ background: '#111724', color: '#5C6B8A' }}>
+                <div className="px-5 py-2 text-xs font-semibold flex items-center gap-2" style={{ background: '#111724', color: '#8A97B3' }}>
                   <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#22C55E' }} />
-                  10 rows in 2ms
+                  4 rows
                 </div>
                 <div className="px-5 py-3 overflow-hidden" style={{ maxHeight: '96px' }}>
                   <table className="w-full text-xs">
                     <thead>
                       <tr>
-                        {['name', 'orders', 'revenue'].map(h => (
-                          <th key={h} className="text-left pb-1.5 font-semibold uppercase tracking-wider" style={{ color: '#2E3A52', fontSize: '10px' }}>{h}</th>
+                        {['city', 'reports', 'murders'].map(h => (
+                          <th key={h} className="text-left pb-1.5 font-semibold uppercase tracking-wider" style={{ color: '#8A97B3', fontSize: '10px' }}>{h}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
                       {[
-                        ['Acme Corp', '142', '$48,320'],
-                        ['TechFlow Inc', '98', '$31,450'],
-                        ['Nova Labs', '76', '$22,180'],
+                        ['SQL City', '6', '1'],
+                        ['Boston', '2', '0'],
+                        ['Chicago', '2', '1'],
                       ].map(row => (
                         <tr key={row[0]}>
                           <td className="py-1" style={{ color: '#EDF1FA' }}>{row[0]}</td>

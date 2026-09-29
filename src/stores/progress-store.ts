@@ -80,9 +80,10 @@ export const useProgressStore = create<ProgressStore>()(
       },
 
       markLessonComplete: (lessonId: string, moduleId: string) => {
+        // Completing a lesson pays XP once; repeat clicks do nothing.
+        if (get().progress.lessonProgress[lessonId]?.completed) return;
         set((state) => {
           const existing = state.progress.lessonProgress[lessonId];
-          if (existing?.completed) return state;
 
           const newProgress = {
             ...state.progress,
@@ -120,16 +121,19 @@ export const useProgressStore = create<ProgressStore>()(
       },
 
       recordQuizScore: (lessonId: string, score: number) => {
+        // Retakes keep the best score, and passing pays XP only the first time.
+        const previous = get().progress.lessonProgress[lessonId]?.quizScore;
+        const firstPass = score >= 70 && (previous === undefined || previous < 70);
         set((state) => {
           const existing = state.progress.lessonProgress[lessonId];
           const newProgress = {
             ...state.progress,
-            quizzesPassed: score >= 70 ? state.progress.quizzesPassed + 1 : state.progress.quizzesPassed,
+            quizzesPassed: firstPass ? state.progress.quizzesPassed + 1 : state.progress.quizzesPassed,
             lessonProgress: {
               ...state.progress.lessonProgress,
               [lessonId]: {
                 ...(existing || { lessonId, moduleId: '', completed: false, queriesRun: 0, timeSpent: 0, lastAccessed: new Date().toISOString() }),
-                quizScore: score,
+                quizScore: Math.max(score, previous ?? 0),
               },
             },
           };
@@ -144,7 +148,7 @@ export const useProgressStore = create<ProgressStore>()(
 
           return { progress: { ...newProgress, achievements } };
         });
-        get().addXP(score >= 70 ? 50 : 10);
+        if (firstPass) get().addXP(50);
       },
 
       incrementQueries: () => {

@@ -35,8 +35,10 @@ export interface DatabaseEngine extends ExecutionEngine {
     getSchema(): Promise<TableDefinition[]>;
     /** Serialise the full DB state to bytes for local/cloud snapshots. */
     serialize(): Promise<Uint8Array>;
-    /** Restore DB state from a previously serialised snapshot (no re-seeding). */
+    /** Restore DB state from a previously serialised snapshot (fills in any missing sample data). */
     restore(data: Uint8Array): Promise<void>;
+    /** Discard everything and return to the freshly seeded state. */
+    reset(): Promise<void>;
 }
 
 /** Result shape returned by code execution engines. */

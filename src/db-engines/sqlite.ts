@@ -1,12 +1,14 @@
 import initSqlJs, { Database, SqlJsStatic } from 'sql.js';
 import { DatabaseEngine, TableDefinition, QueryResult, ForeignKeyDefinition } from './types';
+import { MYSTERY_TABLES, SEED_VERSION, applySeed } from './seed/mystery';
 
 const WASM_URL = (file: string) =>
     `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.13.0/${file}`;
 
 let _SQL: SqlJsStatic | null = null;
 async function getSqlJs(): Promise<SqlJsStatic> {
-    if (!_SQL) _SQL = await initSqlJs({ locateFile: WASM_URL });
+    // Node (tests) loads the wasm from node_modules; the browser uses the CDN.
+    if (!_SQL) _SQL = await initSqlJs(typeof window === 'undefined' ? {} : { locateFile: WASM_URL });
     return _SQL;
 }
 
@@ -17,84 +19,53 @@ export class SQLiteEngine implements DatabaseEngine {
     async init() {
         const SQL = await getSqlJs();
         this.db = new SQL.Database();
+        await this.ensureSeed();
+    }
 
-        // Seed Data
-        this.db.run(`
-      CREATE TABLE IF NOT EXISTS drivers_license (
-        id integer PRIMARY KEY,
-        age integer,
-        height integer,
-        eye_color text,
-        hair_color text,
-        gender text,
-        plate_number text,
-        car_make text,
-        car_model text
-      );
-
-       CREATE TABLE IF NOT EXISTS person (
-            id integer PRIMARY KEY,
-            name text,
-            license_id integer,
-            address_number integer,
-            address_street_name text,
-            ssn text,
-            FOREIGN KEY (license_id) REFERENCES drivers_license(id)
-      );
-      
-      CREATE TABLE IF NOT EXISTS crime_scene_report (
-        date integer,
-        type text,
-        description text,
-        city text
-      );
-      
-      CREATE TABLE IF NOT EXISTS interview (
-            person_id integer,
-            transcript text,
-            FOREIGN KEY (person_id) REFERENCES person(id)
-      );
-
-      CREATE TABLE IF NOT EXISTS get_fit_now_member (
-            id text PRIMARY KEY,
-            person_id integer,
-            name text,
-            membership_start_date integer,
-            membership_status text,
-            FOREIGN KEY (person_id) REFERENCES person(id)
-      );
-      
-      INSERT INTO crime_scene_report VALUES (20180115, 'murder', 'Security footage shows a man walking oddly.', 'SQL City');
-      INSERT INTO crime_scene_report VALUES (20180115, 'theft', 'A donut was stolen.', 'SQL City');
-      INSERT INTO crime_scene_report VALUES (20180215, 'murder', 'Another one.', 'New York');
-    `);
+    /**
+     * Fill in the sample tables once per SEED_VERSION. Runs on restore too,
+     * so projects saved before the data existed pick it up (non-empty tables
+     * are left alone). The version lives in SQLite's own `user_version`.
+     */
+    private async ensureSeed() {
+        const db = this.db!;
+        const version = Number(db.exec('PRAGMA user_version')[0]?.values[0]?.[0] ?? 0);
+        if (version >= SEED_VERSION) return;
+        await applySeed({
+            exec: async sql => { db.exec(sql); },
+            rowCount: async table => Number(db.exec(`SELECT COUNT(*) FROM ${table}`)[0].values[0][0]),
+        }, MYSTERY_TABLES);
+        db.exec(`PRAGMA user_version = ${SEED_VERSION}`);
     }
 
     async execute(query: string): Promise<QueryResult> {
         if (!this.db) throw new Error("DB not initialized");
 
+        // Step through statements ourselves rather than using db.exec():
+        // exec() drops a SELECT that matches no rows entirely, so the UI
+        // couldn't tell "0 rows matched" from "statement ran".
+        let last: QueryResult = { columns: [], rows: [] };
         try {
-            const res = this.db.exec(query);
-            if (res.length === 0) {
-                return { columns: [], rows: [] };
+            for (const stmt of this.db.iterateStatements(query)) {
+                const columns = stmt.getColumnNames();
+                const rows: Record<string, unknown>[] = [];
+                while (stmt.step()) {
+                    const values = stmt.get();
+                    const row: Record<string, unknown> = {};
+                    columns.forEach((col, i) => { row[col] = values[i]; });
+                    rows.push(row);
+                }
+                // Several statements → show the last one that returns columns.
+                if (columns.length > 0) last = { columns, rows };
             }
-
-            const columns = res[0].columns;
-            const values = res[0].values;
-
-            // Convert array of arrays to array of objects to match PGlite format for UI
-            const rows = values.map(row => {
-                const obj: any = {};
-                columns.forEach((col, i) => {
-                    obj[col] = row[i];
-                });
-                return obj;
-            });
-
-            return { columns, rows };
         } catch (e: any) {
-            throw new Error(e.message);
+            throw new Error(e?.message ?? String(e));
         }
+        return last;
+    }
+
+    async reset() {
+        await this.init();
     }
 
     async serialize(): Promise<Uint8Array> {
@@ -105,6 +76,7 @@ export class SQLiteEngine implements DatabaseEngine {
     async restore(data: Uint8Array): Promise<void> {
         const SQL = await getSqlJs();
         this.db = new SQL.Database(data);
+        await this.ensureSeed();
     }
 
     async getSchema(): Promise<TableDefinition[]> {
