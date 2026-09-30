@@ -114,10 +114,11 @@ export default function HomePage() {
               </Link>
             </>
           )}
+          {/* The code sandbox is a side feature: a quiet link, not a second CTA. */}
           <Link href="/code"
-            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all cursor-pointer"
-            style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)', color: '#F59E0B' }}>
-            <Code2 className="w-3.5 h-3.5" /> Code
+            className="hidden sm:block text-sm transition-colors px-3 py-1.5 rounded-lg cursor-pointer hover:bg-white/5"
+            style={{ color: '#8A97B3' }}>
+            Code sandbox
           </Link>
           <Link
             href="/learn"
@@ -164,23 +165,22 @@ export default function HomePage() {
                 Run queries, design schemas, track progress — all in the browser.
               </p>
 
-              {/* CTAs */}
-              <div className="stagger-4 flex flex-col sm:flex-row gap-3">
+              {/* CTA: one primary action (the database course); the sandbox is secondary */}
+              <div className="stagger-4 flex flex-col sm:flex-row sm:items-center gap-4">
                 <Link
                   href="/learn"
                   className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl font-semibold text-base transition-all cursor-pointer shine-hover"
                   style={{ background: '#F59E0B', color: '#07090F', boxShadow: '0 0 32px rgba(245, 158, 11, 0.3)' }}
                 >
                   <Play className="w-4 h-4" />
-                  Start Learning Free
+                  Start learning free
                 </Link>
                 <Link
                   href="/code"
-                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl font-semibold text-base transition-all cursor-pointer"
-                  style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', color: '#F59E0B' }}
+                  className="inline-flex items-center justify-center gap-1.5 text-sm font-medium transition-colors cursor-pointer hover:underline underline-offset-4"
+                  style={{ color: '#8A97B3' }}
                 >
-                  <Code2 className="w-4 h-4" />
-                  Try Code Sandbox
+                  <Code2 className="w-4 h-4" aria-hidden="true" /> Or try the JavaScript &amp; Python sandbox
                 </Link>
               </div>
 

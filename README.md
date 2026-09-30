@@ -12,7 +12,7 @@ Master PostgreSQL, SQLite, and NoSQL with guided lessons, quizzes, and a profess
 - **Gamified Progress** — XP, levels, streaks, achievements, and completion tracking
 - **Professional SQL Editor** — Monaco editor with syntax highlighting and keyboard shortcuts
 - **Schema Visualization** — ER diagrams and table inspection tools
-- **Institution Admin Panel** — Student tracking, custom curricula, bulk enrollment
+- **Institution Admin Panel** — Teacher dashboard with per-student progress; students join with an invite code
 - **Pricing Tiers** — Free, Pro ($12/mo), and Institution ($8/student/mo)
 - **Auth System** — Sign up/sign in with credential-based authentication
 - **Production Security** — Security headers, input validation, OWASP compliance

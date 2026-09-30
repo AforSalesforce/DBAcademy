@@ -3,6 +3,10 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { CURRICULUM } from '@/features/learn/curriculum/curriculum';
+import { localDay, previousDay } from '@/features/learn/streak';
+
+// Pure helpers live in features/learn/streak.ts so server code can use them too.
+export { localDay, currentStreak } from '@/features/learn/streak';
 
 export interface LessonProgress {
   lessonId: string;
@@ -72,22 +76,7 @@ export const ACHIEVEMENTS: Achievement[] = [
 
 const XP_PER_LEVEL = 100;
 
-/** The learner's local calendar day as YYYY-MM-DD (not UTC, so late-evening work counts for today). */
-export function localDay(date: Date = new Date()): string {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-}
 
-function previousDay(day: string): string {
-  const [y, m, d] = day.split('-').map(Number);
-  return localDay(new Date(y, m - 1, d - 1));
-}
-
-/** The streak as it stands today: it's broken (0) once a whole day passes without learning. */
-export function currentStreak(progress: Pick<UserProgress, 'streak' | 'lastActiveDate'>, today: string = localDay()): number {
-  const last = progress.lastActiveDate;
-  return last === today || last === previousDay(today) ? progress.streak : 0;
-}
 const LESSON_XP = 25;
 
 /** XP for passing a challenge: 25, minus 5 per hint (at least 10), or 5 after seeing the solution. */

@@ -2,7 +2,7 @@
 
 import { getSession } from '@/lib/supabase/server';
 import type { UserProgress } from '@/stores/progress-store';
-import { quizAverageFrom, type Institution, type MemberRow } from './types';
+import { quizAverageFrom, pathLessonsFrom, streakFrom, type Institution, type MemberRow } from './types';
 
 /**
  * The institution the caller owns, with a progress summary per member.
@@ -47,9 +47,9 @@ export async function loadInstitutionDashboard(): Promise<{
         id: p.id,
         name: p.name,
         email: p.email,
-        lessonsCompleted: prog?.lessonsCompleted ?? 0,
+        lessonsCompleted: pathLessonsFrom(prog),
         quizAverage: quizAverageFrom(prog),
-        streak: prog?.streak ?? 0,
+        streak: streakFrom(prog),
         xp: prog?.xp ?? 0,
         level: prog?.level ?? 1,
         lastActiveDate: prog?.lastActiveDate ?? '',

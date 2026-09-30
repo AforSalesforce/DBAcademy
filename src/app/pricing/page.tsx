@@ -4,75 +4,9 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useProfile } from '@/lib/use-profile';
-import { Database, GraduationCap, CheckCircle, X, Zap, Play, ChevronDown } from 'lucide-react';
+import { Database, GraduationCap, CheckCircle, Zap, Play, ChevronDown } from 'lucide-react';
 import { SiteFooter } from '@/components/SiteFooter';
-
-const PLANS = [
-  {
-    id: 'free',
-    name: 'Free',
-    price: { monthly: 0, annual: 0 },
-    description: 'Get started with the basics',
-    features: [
-      { text: '3 starter modules', included: true },
-      { text: 'PostgreSQL & SQLite engines', included: true },
-      { text: 'Basic progress tracking', included: true },
-      { text: 'Community support', included: true },
-      { text: 'All modules', included: false },
-      { text: 'NoSQL engine', included: false },
-      { text: 'Quizzes & certificates', included: false },
-      { text: 'Priority support', included: false },
-    ],
-    cta: 'Start Free',
-    href: '/learn',
-  },
-  {
-    id: 'pro',
-    name: 'Pro',
-    price: { monthly: 12, annual: 8 },
-    description: 'Everything for serious learners',
-    popular: true,
-    features: [
-      { text: 'All modules & lessons', included: true },
-      { text: 'All database engines', included: true },
-      { text: 'Advanced progress tracking', included: true },
-      { text: 'Quizzes & assessments', included: true },
-      { text: 'Achievement system', included: true },
-      { text: 'Completion certificates', included: true },
-      { text: 'Priority email support', included: true },
-      { text: 'Offline mode (coming soon)', included: true },
-    ],
-    cta: 'Start 14-day Trial',
-    href: '/auth/signup?plan=pro',
-  },
-  {
-    id: 'institution',
-    name: 'Institution',
-    price: { monthly: 8, annual: 6 },
-    priceNote: 'per student / month',
-    description: 'For schools, colleges & companies',
-    features: [
-      { text: 'Everything in Pro', included: true },
-      { text: 'Admin dashboard', included: true },
-      { text: 'Student progress monitoring', included: true },
-      { text: 'Custom curriculum builder', included: true },
-      { text: 'Bulk student enrollment', included: true },
-      { text: 'LMS integration (SCORM)', included: true },
-      { text: 'SSO / SAML support', included: true },
-      { text: 'Dedicated account manager', included: true },
-    ],
-    cta: 'Get Institution Plan',
-    href: '#contact',
-  },
-];
-
-const FAQS = [
-  { q: 'Do I need to install anything?', a: 'No! DBAcademy runs entirely in your browser using WebAssembly. PostgreSQL, SQLite, and our NoSQL engine all run locally — zero setup required.' },
-  { q: 'Can I use this for my class or company?', a: 'Absolutely! Our Institution plan includes admin dashboards, student tracking, custom curricula, and bulk enrollment. Contact us for a demo.' },
-  { q: 'Is there a free trial for Pro?', a: 'Yes! Pro comes with a 14-day free trial. No credit card required to start.' },
-  { q: 'How is progress saved?', a: 'Progress is saved locally in your browser and synced to your account when signed in. Your work is never lost.' },
-  { q: 'Can I get a certificate?', a: 'Pro and Institution plans include completion certificates that you can share on LinkedIn or include in your portfolio.' },
-];
+import { PRICING_PLANS as PLANS, PRICING_FAQS as FAQS } from '@/features/billing/pricing';
 
 export default function PricingPage() {
   const router = useRouter();
@@ -143,14 +77,14 @@ export default function PricingPage() {
         {/* ── Hero text ──────────────────────────────────────────────────────── */}
         <div className="text-center mb-14">
           <div className="stagger-1 inline-flex items-center gap-2 px-3 py-1.5 mb-6 rounded-full text-xs font-semibold" style={{ border: '1px solid rgba(0,199,190,0.25)', background: 'rgba(0,199,190,0.08)', color: '#00C7BE' }}>
-            <Zap className="w-3 h-3" /> No credit card required to start
+            <Zap className="w-3 h-3" /> The whole course is free. No card needed to start
           </div>
           <h1 className="stagger-2 heading-xl text-4xl sm:text-5xl mb-4" style={{ color: '#EDF1FA' }}>
             Simple, transparent{' '}
             <span className="text-gradient-teal">pricing</span>
           </h1>
           <p className="stagger-3 text-lg max-w-2xl mx-auto mb-8" style={{ color: '#8A97B3' }}>
-            Start free, upgrade when you need more. All plans include browser-based database engines.
+            Every lesson is free. Upgrade for unlimited projects and more server-run code.
           </p>
 
           {/* Billing toggle */}
@@ -249,13 +183,9 @@ export default function PricingPage() {
 
               <ul className="space-y-2.5">
                 {plan.features.map((feature) => (
-                  <li key={feature.text} className="flex items-center gap-2.5 text-sm">
-                    {feature.included ? (
-                      <CheckCircle className="w-4 h-4 shrink-0" style={{ color: '#00C7BE' }} />
-                    ) : (
-                      <X className="w-4 h-4 shrink-0" style={{ color: '#7A87A5' }} />
-                    )}
-                    <span style={{ color: feature.included ? '#EDF1FA' : '#7A87A5' }}>{feature.text}</span>
+                  <li key={feature} className="flex items-start gap-2.5 text-sm">
+                    <CheckCircle className="w-4 h-4 shrink-0 mt-0.5" style={{ color: '#00C7BE' }} aria-hidden="true" />
+                    <span style={{ color: '#EDF1FA' }}>{feature}</span>
                   </li>
                 ))}
               </ul>
@@ -299,16 +229,16 @@ export default function PricingPage() {
             <div className="w-12 h-12 mx-auto mb-5 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #00C7BE, #0096A0)', boxShadow: '0 0 40px rgba(0,199,190,0.3)' }}>
               <GraduationCap className="w-6 h-6 text-white" />
             </div>
-            <h2 className="text-2xl font-bold mb-2 heading-lg" style={{ color: '#EDF1FA' }}>Need an Institution Plan?</h2>
+            <h2 className="text-2xl font-bold mb-2 heading-lg" style={{ color: '#EDF1FA' }}>Setting up a class?</h2>
             <p className="text-sm mb-7 max-w-sm mx-auto" style={{ color: '#8A97B3' }}>
-              Custom pricing, bulk discounts, and a personalized demo for your school or company.
+              Email us with questions about the Institution plan, or for help getting your students started.
             </p>
             <a
               href="mailto:sales@dbacademy.io"
               className="inline-flex items-center gap-2 px-7 py-3 rounded-xl font-semibold transition-all hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
               style={{ background: '#F59E0B', color: '#07090F', boxShadow: '0 0 32px rgba(245,158,11,0.25)' }}
             >
-              Contact Sales
+              Email us
             </a>
           </div>
         </div>
