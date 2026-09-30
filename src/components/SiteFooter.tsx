@@ -27,6 +27,7 @@ export function SiteFooter() {
           {/* Links */}
           <nav className="flex items-center gap-6 text-sm" style={{ color: '#7A87A5' }}>
             <Link href="/" className="hover:text-[#EDF1FA] transition-colors cursor-pointer">Home</Link>
+            <Link href="/lessons" className="hover:text-[#EDF1FA] transition-colors cursor-pointer">Lessons</Link>
             <Link href="/learn" className="hover:text-[#EDF1FA] transition-colors cursor-pointer">App</Link>
             {accounts && <Link href="/pricing" className="hover:text-[#EDF1FA] transition-colors cursor-pointer">Pricing</Link>}
             <Link href="/dashboard" className="hover:text-[#EDF1FA] transition-colors cursor-pointer">Dashboard</Link>

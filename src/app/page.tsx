@@ -1,11 +1,25 @@
 import Link from 'next/link';
 import { accountsEnabled } from '@/lib/features';
+import type { Metadata } from 'next';
 import { CURRICULUM } from '@/features/learn/curriculum/curriculum';
+import { JsonLd } from '@/components/PublicHeader';
+import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from '@/lib/site';
 import {
   Database, GraduationCap, Zap, BookOpen, BarChart3, Code2,
   ShieldCheck, Globe, ArrowRight, Play, Terminal, Table, GitBranch,
   BrainCircuit,
 } from 'lucide-react';
+
+export const metadata: Metadata = {
+  alternates: { canonical: '/' },
+  openGraph: { url: '/' },
+};
+
+/** Tells search engines who publishes the site. */
+const SITE_JSON_LD = [
+  { '@context': 'https://schema.org', '@type': 'WebSite', name: SITE_NAME, url: SITE_URL, description: SITE_DESCRIPTION },
+  { '@context': 'https://schema.org', '@type': 'Organization', name: SITE_NAME, url: SITE_URL, logo: `${SITE_URL}/icon.svg` },
+];
 
 /** Real counts, so the page never promises more than the product has. */
 const LESSON_COUNT = CURRICULUM.reduce((n, m) => n + m.lessons.length, 0);
@@ -28,6 +42,7 @@ const FEATURES = [
     title: `${LESSON_COUNT} Guided Lessons`,
     description: 'Start by solving a murder mystery in SQL, then work through joins, schema design, window functions and document databases.',
     rotate: 'sm:rotate-1',
+    href: '/lessons',
   },
   {
     icon: Code2,
@@ -86,6 +101,7 @@ export default function HomePage() {
   const accounts = accountsEnabled();
   return (
     <main className="min-h-screen overflow-x-hidden" style={{ background: '#07090F', color: '#EDF1FA' }}>
+      <JsonLd data={SITE_JSON_LD} />
       {/* Grid overlay */}
       <div className="fixed inset-0 grid-overlay pointer-events-none opacity-60" />
       {/* Ambient glows */}
@@ -114,6 +130,11 @@ export default function HomePage() {
               </Link>
             </>
           )}
+          <Link href="/lessons"
+            className="hidden sm:block text-sm transition-colors px-3 py-1.5 rounded-lg cursor-pointer hover:bg-white/5"
+            style={{ color: '#8A97B3' }}>
+            Lessons
+          </Link>
           {/* The code sandbox is a side feature: a quiet link, not a second CTA. */}
           <Link href="/code"
             className="hidden sm:block text-sm transition-colors px-3 py-1.5 rounded-lg cursor-pointer hover:bg-white/5"
@@ -397,6 +418,7 @@ export default function HomePage() {
               <Link href="/auth/signin" className="transition-colors cursor-pointer" style={{ color: '#7A87A5' }}>Sign In</Link>
             </>
           )}
+          <Link href="/lessons" className="transition-colors cursor-pointer" style={{ color: '#7A87A5' }}>Lessons</Link>
           <Link href="/learn" className="transition-colors cursor-pointer" style={{ color: '#7A87A5' }}>Database</Link>
           <Link href="/code" className="transition-colors cursor-pointer" style={{ color: '#7A87A5' }}>Code</Link>
         </div>

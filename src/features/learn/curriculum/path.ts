@@ -11,11 +11,37 @@ export interface PathStep {
   module: ModuleType;
   /** 1-based position of the module in the path. */
   moduleNumber: number;
+  /** URL slug of the lesson's public page (/lessons/<slug>). Never change one once published. */
+  slug: string;
+}
+
+const SLUG_PREFIX: Record<string, string> = { sqlite: 'sql', postgres: 'postgresql', nosql: 'nosql' };
+
+/** Hand-picked slugs where the title alone reads badly in a URL. */
+const SLUG_OVERRIDES: Record<string, string> = {
+  '1-1': 'sql-murder-mystery-crime-scene',
+  '1-2': 'sql-murder-mystery-finding-witnesses',
+  '1-3': 'sql-murder-mystery-interviews',
+  '1-4': 'sql-murder-mystery-catch-the-killer',
+  'pg-1-1': 'postgresql-introduction',
+};
+
+function kebab(text: string): string {
+  return text.toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
+function slugFor(lesson: LessonContentType, module: ModuleType): string {
+  return SLUG_OVERRIDES[lesson.id] ?? `${SLUG_PREFIX[module.engine] ?? module.engine}-${kebab(lesson.title)}`;
 }
 
 export const LEARNING_PATH: PathStep[] = CURRICULUM.flatMap((module, i) =>
-  module.lessons.map(lesson => ({ lesson, module, moduleNumber: i + 1 })),
+  module.lessons.map(lesson => ({ lesson, module, moduleNumber: i + 1, slug: slugFor(lesson, module) })),
 );
+
+/** The path lesson with this public slug, if any. */
+export function findStepBySlug(slug: string): PathStep | null {
+  return LEARNING_PATH.find(s => s.slug === slug) ?? null;
+}
 
 export const TOTAL_PATH_LESSONS = LEARNING_PATH.length;
 

@@ -2,6 +2,16 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // One address for search engines: send the production *.vercel.app alias
+  // to the custom domain. (Preview deployments have other hostnames.)
+  redirects: async () => [
+    {
+      source: '/:path*',
+      has: [{ type: 'host', value: 'dba-cademy.vercel.app' }],
+      destination: 'https://www.dbacademy.online/:path*',
+      permanent: true,
+    },
+  ],
   compress: true,
   headers: async () => [
     {
