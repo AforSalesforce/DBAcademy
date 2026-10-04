@@ -282,7 +282,7 @@ function DashboardContent() {
             </div>
           </div>
           <p className="text-xs mt-3" style={{ color: '#8A97B3' }}>
-            How XP works: up to 25 per lesson (5 less for each hint), 50 the first time you pass a quiz, and 2 for every query you run.
+            How XP works: up to 25 per lesson (5 less for each hint), 50 the first time you pass a quiz, and 2 for each new query you run (up to 40 a day; running the same query again doesn&apos;t count).
           </p>
         </div>
 

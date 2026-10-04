@@ -109,15 +109,23 @@ Why filter on the street too? Run it without that line and see who else turns up
 
 You have two witnesses. Time to read what they told the police.
 
-Transcripts live in the \`interview\` table, linked to \`person\` by \`person_id\`. A JOIN puts each person's name next to what they said. Note every clue the witnesses give you; you'll need them all in the next lesson.
+Names live in the \`person\` table, but what people said lives in the \`interview\` table. Each interview stores the \`person_id\` of whoever gave it. A **JOIN** puts the two tables side by side, so each person's name sits next to their own transcript.
 
-### Joins Syntax
+## Reading a JOIN
+
 \`\`\`sql
 SELECT p.name, i.transcript
 FROM person p
 JOIN interview i ON p.id = i.person_id
 WHERE p.name = 'Witness Name';
 \`\`\`
+
+- **\`person p\`** gives the table a short nickname (an *alias*), so you can write \`p.name\` instead of \`person.name\`. Likewise \`interview i\`.
+- **\`JOIN interview i\`** brings in the second table.
+- **\`ON p.id = i.person_id\`** says which rows belong together: an interview is paired with the person whose \`id\` equals its \`person_id\`. People without an interview are left out.
+- **\`p.name\`, \`i.transcript\`**: the alias tells the database which table each column comes from.
+
+Note every clue the witnesses give you; you'll need them all in the next lesson. Module 3 covers joins in more depth.
                 `,
                 quiz: [
                     {

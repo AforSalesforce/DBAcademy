@@ -90,3 +90,30 @@ describe('streak', () => {
     expect(localDay(new Date(2026, 0, 5, 23, 30))).toBe('2026-01-05');
   });
 });
+
+describe('query XP cannot be farmed', () => {
+  beforeEach(() => {
+    useProgressStore.setState({ progress: { ...initial, lessonProgress: {}, achievements: [], xp: 0, queriesExecuted: 0, lastQueryKey: undefined, queryXpToday: 0, queryXpDay: undefined } });
+  });
+
+  it('pressing Run again on the same query earns and counts nothing', () => {
+    state().incrementQueries('SELECT * FROM person;');
+    state().incrementQueries('SELECT * FROM person;');
+    state().incrementQueries('select  *  from person;'); // same query, different spacing/case
+    expect(state().progress.queriesExecuted).toBe(1);
+    expect(state().progress.xp).toBe(2);
+  });
+
+  it('a different query counts again', () => {
+    state().incrementQueries('SELECT 1');
+    state().incrementQueries('SELECT 2');
+    state().incrementQueries('SELECT 1');
+    expect(state().progress.queriesExecuted).toBe(3);
+  });
+
+  it('caps query XP at 40 a day but keeps counting queries', () => {
+    for (let i = 0; i < 30; i++) state().incrementQueries(`SELECT ${i}`);
+    expect(state().progress.xp).toBe(40);
+    expect(state().progress.queriesExecuted).toBe(30);
+  });
+});

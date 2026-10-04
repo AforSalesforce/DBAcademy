@@ -34,7 +34,20 @@ export interface Challenge {
    * e.g. `SELECT name` instead of `SELECT *` when the task is "find the row".
    */
   allowColumnSubset?: boolean;
+  /**
+   * Common slips, each with a tip shown when an attempt that doesn't pass
+   * matches it, e.g. writing a date as '2018-01-15'. Checked in order.
+   */
+  mistakes?: Mistake[];
 }
+
+export interface Mistake {
+  /** Does the attempt (raw text) show this slip? */
+  when: (attempt: string) => boolean;
+  tip: string;
+}
+
+const has = (pattern: RegExp) => (sql: string) => pattern.test(sql);
 
 export const CHALLENGES: Record<string, Challenge> = {
   // ── SQLite · Module 1: The Murder Mystery ────────────────────────────────
@@ -50,6 +63,11 @@ WHERE city = 'SQL City' AND date = 20180115 AND type = 'murder';`,
       "Dates are whole numbers here, so no quotes: date = 20180115. The type is 'murder'.",
     ],
     allowColumnSubset: true,
+    mistakes: [
+      { when: has(/date\s*=\s*'?\d{4}[-/]\d{1,2}[-/]\d{1,2}|date\s*=\s*'\d{8}'/i), tip: 'Dates in this table are whole numbers in YYYYMMDD form, with no dashes or quotes: date = 20180115.' },
+      { when: sql => /'sql city'/i.test(sql) && !/'SQL City'/.test(sql), tip: "Text comparisons are exact, capital letters included: city = 'SQL City'." },
+      { when: has(/type\s*=\s*'Murder'/), tip: "The type is stored in lower case: type = 'murder'." },
+    ],
   },
   '1-2': {
     prompt: 'Find the first witness: the person living in the highest-numbered house on Northwestern Dr. Return just that one person.',
@@ -65,6 +83,9 @@ LIMIT 1;`,
       'Add LIMIT 1 at the end to keep only the first row.',
     ],
     allowColumnSubset: true,
+    mistakes: [
+      { when: has(/order\s+by\s+address_number(?!\s+desc)/i), tip: 'ORDER BY sorts lowest first. Add DESC to put the highest house number on top.' },
+    ],
   },
   '1-3': {
     prompt: "Show the name and interview transcript of both witnesses, Morris Kettle and Annabel Voss: two rows, two columns.",
@@ -78,6 +99,9 @@ WHERE p.name IN ('Morris Kettle', 'Annabel Voss');`,
     hints: [
       'The JOIN is already right. It returns every interview; add a WHERE clause to keep only the two witnesses.',
       "IN matches any value in a list: WHERE p.name IN ('…', '…').",
+    ],
+    mistakes: [
+      { when: has(/=\s*'Annabel'/), tip: "Her full name is Annabel Voss. Use the full name, or LIKE 'Annabel%'." },
     ],
   },
   '1-4': {
@@ -102,6 +126,10 @@ WHERE g.membership_status = 'gold'
       "Clue 4, 'K9' anywhere in the plate: AND d.plate_number LIKE '%K9%'.",
     ],
     allowColumnSubset: true,
+    mistakes: [
+      { when: has(/like\s*'K9'/i), tip: "Without % signs, LIKE has to match the whole plate. Use '%K9%' to find K9 anywhere in it." },
+      { when: has(/gender\s*=\s*'(Male|M|m|MALE)'/), tip: "Gender is stored in lower case: d.gender = 'male'." },
+    ],
   },
 
   // ── SQLite · Module 2: SQL Fundamentals ──────────────────────────────────
@@ -123,6 +151,9 @@ WHERE g.membership_status = 'gold'
       "Use IN with a list: WHERE city IN ('Chicago', 'Boston'). Two conditions joined by OR also work.",
     ],
     allowColumnSubset: true,
+    mistakes: [
+      { when: has(/city\s*=\s*'\w+'\s+and\s+city\s*=/i), tip: "A report can't be in two cities at once, so AND matches nothing. Use OR, or IN ('Chicago', 'Boston')." },
+    ],
   },
   'sql-fun-3': {
     prompt: 'Show the 3 most recent crime reports, newest first.',
@@ -133,6 +164,9 @@ LIMIT 3;`,
     hints: [
       'Sort by date so the newest reports come first.',
       'ORDER BY date DESC, then LIMIT 3.',
+    ],
+    mistakes: [
+      { when: has(/order\s+by\s+date(?!\s+desc)/i), tip: 'ORDER BY sorts oldest first. Newest first needs ORDER BY date DESC.' },
     ],
     orderMatters: true,
     allowColumnSubset: true,
@@ -146,6 +180,9 @@ GROUP BY city;`,
     hints: [
       'GROUP BY city collapses the rows into one row per city.',
       'COUNT(*) counts the rows in each group: SELECT city, COUNT(*) … GROUP BY city.',
+    ],
+    mistakes: [
+      { when: sql => /count\s*\(/i.test(sql) && !/group\s+by/i.test(sql), tip: 'Without GROUP BY, COUNT counts every row at once. Add GROUP BY city to count per city.' },
     ],
   },
 
@@ -176,6 +213,9 @@ WHERE d.id IS NULL;`,
       'In a LEFT JOIN, a person with no licence gets NULL in every drivers_license column.',
       'Keep only those rows: WHERE d.id IS NULL. (= NULL never matches; use IS NULL.)',
       'Then SELECT only p.name.',
+    ],
+    mistakes: [
+      { when: has(/(=|!=|<>)\s*null\b/i), tip: 'Nothing equals NULL, not even NULL, so = NULL matches no rows. Use IS NULL.' },
     ],
   },
   'join-3': {
@@ -270,6 +310,9 @@ LIMIT 5;`,
     hints: [
       'Pick just the name and email columns.',
       '"First by id" means ORDER BY id, then LIMIT 5.',
+    ],
+    mistakes: [
+      { when: sql => /limit\s+5/i.test(sql) && !/order\s+by/i.test(sql), tip: "Without ORDER BY, rows come back in no guaranteed order. Add ORDER BY id so 'first' means lowest id." },
     ],
     orderMatters: true,
   },

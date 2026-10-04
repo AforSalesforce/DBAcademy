@@ -281,7 +281,7 @@ export default function HomePage() {
                   <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#22C55E' }} />
                   4 rows
                 </div>
-                <div className="px-5 py-3 overflow-hidden" style={{ maxHeight: '96px' }}>
+                <div className="px-5 py-3">
                   <table className="w-full text-xs">
                     <thead>
                       <tr>
@@ -295,6 +295,7 @@ export default function HomePage() {
                         ['SQL City', '6', '1'],
                         ['Boston', '2', '0'],
                         ['Chicago', '2', '1'],
+                        ['New York', '2', '1'],
                       ].map(row => (
                         <tr key={row[0]}>
                           <td className="py-1" style={{ color: '#EDF1FA' }}>{row[0]}</td>
@@ -308,7 +309,7 @@ export default function HomePage() {
               </div>
             </div>
             {/* Floating badge */}
-            <div className="absolute -bottom-5 -left-6 px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2" style={{ background: '#111724', border: '1px solid rgba(0,199,190,0.2)', color: '#00C7BE' }}>
+            <div className="absolute -top-4 -right-4 px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2" style={{ background: '#111724', border: '1px solid rgba(0,199,190,0.2)', color: '#00C7BE' }}>
               <Zap className="w-3.5 h-3.5" /> WebAssembly powered
             </div>
           </div>

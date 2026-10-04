@@ -209,7 +209,7 @@ export function useDatabaseWorkspace(dbType: EngineType, activeProjectId: string
       setResultMessage(res.message ?? null);
       setHasRun(true);
       setLastRunDuration(duration);
-      incrementQueries();
+      incrementQueries(q);
 
       await runHistoryStore.addRun({
         projectId: activeProjectId,

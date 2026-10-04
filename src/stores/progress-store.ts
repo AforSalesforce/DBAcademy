@@ -41,6 +41,11 @@ export interface UserProgress {
   level: number;
   lessonProgress: Record<string, LessonProgress>;
   achievements: Achievement[];
+  /** The last query that counted, normalised: running it again doesn't count twice. */
+  lastQueryKey?: string;
+  /** Query XP already earned on `queryXpDay` (capped per day). */
+  queryXpToday?: number;
+  queryXpDay?: string;
 }
 
 interface ProgressStore {
@@ -51,7 +56,8 @@ interface ProgressStore {
   /** Note that a hint (or the solution) was revealed; it lowers the challenge's XP. */
   recordHelp: (lessonId: string, help: { hintsUsed?: number; solutionShown?: boolean }) => void;
   recordQuizScore: (lessonId: string, score: number) => void;
-  incrementQueries: () => void;
+  /** Count a successful run. The same query run again in a row earns nothing; query XP is capped per day. */
+  incrementQueries: (queryText?: string) => void;
   addXP: (amount: number) => void;
   /** Count today toward the streak. Called when the learner completes a lesson or passes a quiz. */
   recordLearningDay: () => void;
@@ -62,8 +68,8 @@ interface ProgressStore {
 
 export const ACHIEVEMENTS: Achievement[] = [
   { id: 'first-query', title: 'First Query', description: 'Run your first SQL query', icon: '🎯' },
-  { id: 'ten-queries', title: 'Query Master', description: 'Run 10 queries', icon: '⚡' },
-  { id: 'hundred-queries', title: 'SQL Wizard', description: 'Run 100 queries', icon: '🧙' },
+  { id: 'ten-queries', title: 'Query Master', description: 'Run 10 different queries', icon: '⚡' },
+  { id: 'hundred-queries', title: 'SQL Wizard', description: 'Run 100 different queries', icon: '🧙' },
   { id: 'first-lesson', title: 'Student', description: 'Complete your first lesson', icon: '📖' },
   { id: 'five-lessons', title: 'Scholar', description: 'Complete 5 lessons', icon: '🎓' },
   { id: 'perfect-quiz', title: 'Perfect Score', description: 'Get 100% on a quiz', icon: '💯' },
@@ -75,6 +81,11 @@ export const ACHIEVEMENTS: Achievement[] = [
 ];
 
 const XP_PER_LEVEL = 100;
+/** XP for running a new query, and the most a day's querying can earn (so Run can't be farmed). */
+export const QUERY_XP = 2;
+export const DAILY_QUERY_XP_CAP = 40;
+
+const normaliseQuery = (text: string) => text.replace(/\s+/g, ' ').trim().toLowerCase();
 
 
 const LESSON_XP = 25;
@@ -205,7 +216,13 @@ export const useProgressStore = create<ProgressStore>()(
         if (score >= 70) get().recordLearningDay();
         },
 
-        incrementQueries: () => {
+        incrementQueries: (queryText?: string) => {
+          const key = queryText === undefined ? undefined : normaliseQuery(queryText);
+          if (key !== undefined && key === get().progress.lastQueryKey) return; // pressing Run again isn't progress
+          const today = localDay();
+          const p = get().progress;
+          const xpSoFar = p.queryXpDay === today ? (p.queryXpToday ?? 0) : 0;
+          const earnsXp = xpSoFar < DAILY_QUERY_XP_CAP;
           set((state) => {
             const newCount = state.progress.queriesExecuted + 1;
             const achievements = [...state.progress.achievements];
@@ -229,9 +246,18 @@ export const useProgressStore = create<ProgressStore>()(
               }
             }
 
-            return { progress: { ...state.progress, queriesExecuted: newCount, achievements } };
+            return {
+              progress: {
+                ...state.progress,
+                queriesExecuted: newCount,
+                achievements,
+                lastQueryKey: key,
+                queryXpDay: today,
+                queryXpToday: xpSoFar + (earnsXp ? QUERY_XP : 0),
+              },
+            };
           });
-          get().addXP(2);
+          if (earnsXp) get().addXP(QUERY_XP);
         },
 
         addXP: (amount: number) => {

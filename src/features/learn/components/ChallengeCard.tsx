@@ -81,9 +81,11 @@ export function ChallengeCard({
 
                 <div className="flex flex-wrap items-center gap-3 mt-4">
                     <button
-                        onClick={onCheck}
-                        disabled={checking || Boolean(engineMismatch)}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md text-sm font-semibold bg-accent text-canvas hover:bg-accent/90 disabled:opacity-60 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                        onClick={() => { if (!engineMismatch) onCheck(); }}
+                        disabled={checking}
+                        aria-disabled={engineMismatch ? true : undefined}
+                        title={engineMismatch ? `This lesson uses ${engineMismatch.lessonEngine}. Switch back to check your answer.` : undefined}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md text-sm font-semibold bg-accent text-canvas hover:bg-accent/90 disabled:opacity-60 aria-disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:hover:bg-accent transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                     >
                         {checking
                             ? <><Loader2 size={14} className="animate-spin motion-reduce:animate-none" aria-hidden="true" /> Checking…</>
@@ -205,7 +207,9 @@ function Feedback({ grade, challenge, xpAwarded, onNextLesson, explain }: {
                     <AlertTriangle size={16} aria-hidden="true" /> Your query hit an error
                 </p>
                 <p className="text-xs font-mono text-danger/90 mt-1 break-words">{grade.message}</p>
-                {hint && <p className="text-sm text-ink mt-2">{hint}</p>}
+                {grade.tip
+                    ? <MistakeTip tip={grade.tip} />
+                    : hint && <p className="text-sm text-ink mt-2">{hint}</p>}
             </div>
         );
     }
@@ -218,6 +222,7 @@ function Feedback({ grade, challenge, xpAwarded, onNextLesson, explain }: {
                 <XCircle size={16} aria-hidden="true" /> Not yet. {title}
             </p>
             {detail && <p className="text-xs text-warm/80 mt-1">{detail}</p>}
+            {grade.tip && <MistakeTip tip={grade.tip} />}
             {v.kind === 'values' && (
                 <div className="mt-2 space-y-2 text-xs">
                     <RowList label="Missing from your result" columns={v.columns} rows={v.missing} />
@@ -269,7 +274,7 @@ export function VerdictBanner({ grade, xpAwarded, onNext }: { grade: Grade; xpAw
             <div className={`${base} border-danger/20 bg-danger/10 text-danger`} role="status">
                 <AlertTriangle size={16} aria-hidden="true" />
                 <span className="font-semibold">Not yet: your query hit an error.</span>
-                <span className="text-ink/80">See the tip below and in the lesson panel.</span>
+                <span className="text-ink/80">{grade.tip ?? 'See the tip below and in the lesson panel.'}</span>
             </div>
         );
     }
@@ -279,7 +284,17 @@ export function VerdictBanner({ grade, xpAwarded, onNext }: { grade: Grade; xpAw
             <XCircle size={16} aria-hidden="true" />
             <span className="font-semibold">Not yet.</span>
             <span className="text-ink">{title}</span>
-            <span className="text-ink/70">Hints are in the lesson panel.</span>
+            <span className="text-ink/70">{grade.tip ?? 'Hints are in the lesson panel.'}</span>
         </div>
+    );
+}
+
+/** Advice for a recognised common mistake (e.g. a date written as '2018-01-15'). */
+function MistakeTip({ tip }: { tip: string }) {
+    return (
+        <p className="flex gap-2 text-sm text-ink mt-2">
+            <Lightbulb size={14} className="mt-0.5 shrink-0 text-warm" aria-hidden="true" />
+            <span><span className="font-semibold">Tip: </span>{tip}</span>
+        </p>
     );
 }

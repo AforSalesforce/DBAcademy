@@ -10,8 +10,14 @@ export type FailReason =
 
 export type Grade =
   | { status: 'pass'; note?: 'column-order' }
-  | { status: 'fail'; verdict: FailReason }
-  | { status: 'error'; message: string };
+  /** `tip`: advice for a recognised common mistake (see Challenge.mistakes). */
+  | { status: 'fail'; verdict: FailReason; tip?: string }
+  | { status: 'error'; message: string; tip?: string };
+
+/** The tip for the first common mistake this attempt shows, if any. */
+export function mistakeTip(challenge: Challenge, attempt: string): string | undefined {
+  return challenge.mistakes?.find(m => m.when(attempt))?.tip;
+}
 
 /** Expected results, computed once per lesson from the reference solution. */
 const expectedCache = new Map<string, Promise<QueryResult>>();
@@ -37,8 +43,9 @@ export async function gradeAttempt(engine: GradedEngine, lessonId: string, chall
     actual = await runInSandbox(engine, attempt, challenge.check);
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
-    if (e instanceof CheckFailed) return { status: 'fail', verdict: { kind: 'check-failed', message } };
-    return { status: 'error', message };
+    const tip = mistakeTip(challenge, attempt);
+    if (e instanceof CheckFailed) return { status: 'fail', verdict: { kind: 'check-failed', message }, tip };
+    return { status: 'error', message, tip };
   }
 
   const verdict = compareResults(expected, actual, {
@@ -46,7 +53,9 @@ export async function gradeAttempt(engine: GradedEngine, lessonId: string, chall
     allowColumnSubset: challenge.allowColumnSubset,
     documents: engine === 'nosql',
   });
-  return verdict.kind === 'match' ? { status: 'pass', note: verdict.note } : { status: 'fail', verdict };
+  return verdict.kind === 'match'
+    ? { status: 'pass', note: verdict.note }
+    : { status: 'fail', verdict, tip: mistakeTip(challenge, attempt) };
 }
 
 /** Plain-language feedback for a failed attempt. */

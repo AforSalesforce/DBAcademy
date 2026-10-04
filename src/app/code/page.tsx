@@ -280,7 +280,7 @@ export default function CodePage() {
 
       const result = await engine.execute(program);
       setOutput(result);
-      incrementQueries();
+      incrementQueries(program);
       await codeHistoryStore.addRun({
         language,
         code: program,

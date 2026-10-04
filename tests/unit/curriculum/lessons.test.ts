@@ -264,3 +264,30 @@ describe('SQLite results', () => {
     await expect(db.execute('SELECT nme FROM person')).rejects.toThrow(/no such column: nme/);
   });
 });
+
+/** Realistic beginner slips and the tip each should get. */
+const MISTAKES: [lessonId: string, attempt: string, tip: RegExp][] = [
+  ['1-1', "SELECT * FROM crime_scene_report WHERE city = 'SQL City' AND date = '2018-01-15' AND type = 'murder'", /YYYYMMDD/],
+  ['1-1', "SELECT * FROM crime_scene_report WHERE city = 'sql city' AND date = 20180115 AND type = 'murder'", /capital letters/],
+  ['1-2', "SELECT * FROM person WHERE address_street_name = 'Northwestern Dr' ORDER BY address_number LIMIT 1", /DESC/],
+  ['1-4', "SELECT p.name FROM get_fit_now_member g JOIN person p ON p.id = g.person_id JOIN drivers_license d ON d.id = p.license_id WHERE g.membership_status = 'gold' AND g.id LIKE 'G7%' AND d.gender = 'male' AND d.plate_number LIKE 'K9'", /% signs/],
+  ['sql-fun-2', "SELECT * FROM crime_scene_report WHERE city = 'Chicago' AND city = 'Boston'", /two cities/],
+  ['sql-fun-3', 'SELECT * FROM crime_scene_report ORDER BY date LIMIT 3', /DESC/],
+  ['sql-fun-4', 'SELECT city, COUNT(*) FROM crime_scene_report', /GROUP BY/],
+  ['join-2', 'SELECT p.name FROM person p LEFT JOIN drivers_license d ON p.license_id = d.id WHERE d.id = NULL', /IS NULL/],
+  ['pg-1-1', 'SELECT name FROM users LIMIT 5', /ORDER BY id/],
+];
+
+describe('common-mistake tips', () => {
+  it.each(MISTAKES)('%s: "%s" gets a targeted tip', async (id, attempt, tip) => {
+    const { module, lesson } = lessonById.get(id)!;
+    const grade = await gradeAttempt(module.engine as Engine, id, lesson.challenge!, attempt);
+    expect(grade.status).not.toBe('pass');
+    expect(grade.status !== 'pass' && grade.tip).toMatch(tip);
+  }, 60_000);
+
+  it.each(named)('%s: the reference solution triggers no mistake tip', (_name, { lesson }) => {
+    const c = lesson.challenge!;
+    expect(c.mistakes?.find(m => m.when(c.solution))?.tip).toBeUndefined();
+  });
+});

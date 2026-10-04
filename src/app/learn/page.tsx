@@ -916,12 +916,15 @@ export default function LearnPage() {
               {activeLesson?.challenge && (
                 <button
                   onClick={checkChallenge}
-                  disabled={challengeUi.checking || workspace.loading || engineMismatch}
+                  disabled={challengeUi.checking || workspace.loading}
+                  // aria-disabled, not disabled, on the wrong engine: browsers show
+                  // no tooltip on a disabled button, and this one needs to explain itself.
+                  aria-disabled={engineMismatch || undefined}
                   title={engineMismatch
-                    ? `Switch back to ${ENGINE_LABEL[lessonEngine!]} to check this lesson`
+                    ? `This lesson uses ${ENGINE_LABEL[lessonEngine!]}. Switch back to ${ENGINE_LABEL[lessonEngine!]} to check your answer.`
                     : "Check your answer to this lesson's challenge"}
                   aria-label={tinyToolbar ? 'Check my answer' : undefined}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${engineMismatch ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                   style={{ color: '#00C7BE', background: 'rgba(0,199,190,0.08)', border: '1px solid rgba(0,199,190,0.3)' }}
                 >
                   <CheckCircle2 style={{ width: 12, height: 12 }} aria-hidden="true" />
