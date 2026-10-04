@@ -39,6 +39,9 @@ export const metadata: Metadata = {
     card: "summary_large_image",
   },
   robots: { index: true, follow: true },
+  // Google Search Console ownership of https://www.dbacademy.online/.
+  // Must stay in place: removing it un-verifies the property.
+  verification: { google: "gxxQdjdOk4fGSMgAaSkqDK7UeY_ubvJcMPInOzFys4Y" },
 };
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
