@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { LEARNING_PATH, findStepBySlug } from '@/features/learn/curriculum/path';
 import {
-  LESSON_DESCRIPTIONS, courseJsonLd, lessonBody, lessonDescription, lessonJsonLd, lessonUrl,
+  LESSON_DESCRIPTIONS, courseJsonLd, lessonBody, lessonDescription, lessonJsonLd, lessonSummary, lessonUrl,
 } from '@/features/learn/curriculum/seo';
 import sitemap from '@/app/sitemap';
 import robots from '@/app/robots';
@@ -34,6 +34,19 @@ describe('lesson descriptions', () => {
       expect(d.length).toBeLessThanOrEqual(160);
     }
     expect(new Set(all).size).toBe(all.length);
+  });
+});
+
+describe('lesson summaries (shown on the site)', () => {
+  it('drop the search-result pitch but keep what the lesson teaches', () => {
+    for (const step of LEARNING_PATH) {
+      const summary = lessonSummary(step);
+      expect(summary, step.lesson.id).not.toMatch(/free interactive|in your browser\.$/i);
+      expect(summary.length, step.lesson.id).toBeGreaterThan(30);
+    }
+    expect(lessonSummary(findStepBySlug('sql-murder-mystery-catch-the-killer')!)).toBe(
+      'Combine every clue with multi-table JOINs and LIKE to catch the killer.');
+    expect(lessonSummary(findStepBySlug('nosql-embedding-vs-references')!)).toMatch(/^Embedding vs\. references: learn how/);
   });
 });
 

@@ -14,7 +14,7 @@ import { joinInstitution } from '@/features/institutions/actions';
 import { useFeatures } from '@/components/FeaturesProvider';
 import {
   Database, GraduationCap, Trophy, Zap, Flame,
-  BookOpen, ArrowRight, Star, LogOut, Play, CheckCircle, X, Lock, Code2,
+  BookOpen, ArrowRight, Star, LogOut, Play, CheckCircle, X, Lock, Code2, HardDrive,
   Wand2, BadgeCheck, Sparkles, Gem, Crown, type LucideIcon,
 } from 'lucide-react';
 
@@ -210,6 +210,13 @@ function DashboardContent() {
             {profile?.name ? `Welcome back, ${profile.name.split(' ')[0]}` : 'Your Dashboard'}
           </h1>
           <p style={{ color: '#8A97B3' }}>Track your progress and keep the streak alive.</p>
+          {/* Learners worry about losing progress: say plainly where it lives. */}
+          <p className="flex items-start gap-2 text-sm mt-3" style={{ color: '#B4BED3' }}>
+            <HardDrive className="w-4 h-4 mt-0.5 shrink-0" style={{ color: '#8A97B3' }} aria-hidden="true" />
+            {accounts && profile
+              ? 'Your progress is saved in this browser and synced to your account.'
+              : 'Your progress is saved in this browser only. Clearing your browsing data, using a private window or switching device starts you afresh.'}
+          </p>
         </div>
 
         {/* ── Stat Cards ────────────────────────────────────────────────────────── */}
@@ -271,9 +278,12 @@ function DashboardContent() {
               className="h-2.5 rounded-full transition-all duration-700 ease-out relative"
               style={{ width: `${Math.max(progressPercent, 2)}%`, background: 'linear-gradient(90deg, #00C7BE, #00E5DC)' }}
             >
-              <div className="absolute inset-0 bg-white/20 rounded-full animate-pulse" style={{ animationDuration: '2s' }} />
+              <div className="absolute inset-0 bg-white/20 rounded-full animate-pulse motion-reduce:animate-none" style={{ animationDuration: '2s' }} />
             </div>
           </div>
+          <p className="text-xs mt-3" style={{ color: '#8A97B3' }}>
+            How XP works: up to 25 per lesson (5 less for each hint), 50 the first time you pass a quiz, and 2 for every query you run.
+          </p>
         </div>
 
         {/* ── Next up + path ───────────────────────────────────────────────────── */}

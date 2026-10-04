@@ -36,6 +36,15 @@ export function lessonDescription(step: PathStep): string {
     ?? `Learn ${step.lesson.title} in ${ENGINE_LABEL[step.module.engine]}: a free interactive lesson with a graded challenge in your browser.`;
 }
 
+/**
+ * What the lesson covers, for people reading the site: the search description
+ * without its closing pitch ("A free interactive … in your browser"), which
+ * is there for search results and reads like an ad when repeated on a page.
+ */
+export function lessonSummary(step: PathStep): string {
+  return lessonDescription(step).replace(/\s+(A free\b|Part \d+ of\b|The finale of\b)[\s\S]*$/, '');
+}
+
 /** The lesson's markdown without its leading "# Title" (the page renders its own heading). */
 export function lessonBody(step: PathStep): string {
   return step.lesson.content.trim().replace(/^#\s+.*\n+/, '');

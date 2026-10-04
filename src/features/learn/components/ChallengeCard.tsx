@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { CheckCircle2, XCircle, AlertTriangle, Lightbulb, Eye, ArrowRight, RotateCcw, Target, Loader2 } from 'lucide-react';
 import type { Challenge } from '@/features/learn/curriculum/challenges';
 import type { Grade } from '@/features/learn/grading/grade';
@@ -20,12 +20,22 @@ interface ChallengeCardProps {
     onNextLesson?: () => void;
     /** Beginner-friendly explanation of an error message, if there is one. */
     explain: (message: string) => string | null;
+    /** Set when the open playground isn't this lesson's engine: checking waits until they switch back. */
+    engineMismatch?: { lessonEngine: string; currentEngine: string; onSwitchBack: () => void };
 }
 
 export function ChallengeCard({
     lessonId, challenge, grade, checking, xpAwarded,
-    onCheck, onResetStarter, onUseSolution, onNextLesson, explain,
+    onCheck, onResetStarter, onUseSolution, onNextLesson, explain, engineMismatch,
 }: ChallengeCardProps) {
+    // Bring a new verdict into view: Check is often pressed from the editor
+    // toolbar, far from where the result appears in this panel.
+    const feedbackRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        if (!grade || checking) return;
+        const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+        feedbackRef.current?.scrollIntoView({ block: 'nearest', behavior: reduceMotion ? 'auto' : 'smooth' });
+    }, [grade, checking]);
     const lessonProgress = useProgressStore(s => s.progress.lessonProgress[lessonId]);
     const recordHelp = useProgressStore(s => s.recordHelp);
     const hintsShown = lessonProgress?.hintsUsed ?? 0;
@@ -54,10 +64,25 @@ export function ChallengeCard({
                 </div>
                 <p className="text-sm leading-relaxed text-ink">{challenge.prompt}</p>
 
+                {engineMismatch && (
+                    <div className="mt-3 rounded-md border border-warm/30 bg-warm/10 p-3 text-sm text-ink" role="status">
+                        <p>
+                            This lesson runs on <strong>{engineMismatch.lessonEngine}</strong>. You&apos;re in the {engineMismatch.currentEngine} playground,
+                            so checking is paused. Your {engineMismatch.lessonEngine} query is saved.
+                        </p>
+                        <button
+                            onClick={engineMismatch.onSwitchBack}
+                            className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-warm text-canvas hover:bg-warm/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-warm"
+                        >
+                            Back to {engineMismatch.lessonEngine}
+                        </button>
+                    </div>
+                )}
+
                 <div className="flex flex-wrap items-center gap-3 mt-4">
                     <button
                         onClick={onCheck}
-                        disabled={checking}
+                        disabled={checking || Boolean(engineMismatch)}
                         className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md text-sm font-semibold bg-accent text-canvas hover:bg-accent/90 disabled:opacity-60 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                     >
                         {checking
@@ -75,7 +100,7 @@ export function ChallengeCard({
             </div>
 
             {/* Feedback */}
-            <div aria-live="polite">
+            <div aria-live="polite" ref={feedbackRef} className="scroll-mt-24">
                 {grade && !checking && <Feedback grade={grade} challenge={challenge} xpAwarded={xpAwarded} onNextLesson={onNextLesson} explain={explain} />}
             </div>
 
@@ -215,6 +240,46 @@ function RowList({ label, columns, rows }: { label: string; columns: string[]; r
                     </li>
                 ))}
             </ul>
+        </div>
+    );
+}
+
+/**
+ * One-line verdict shown above the query results after Check, where the
+ * learner is already looking. Details and hints stay in the lesson panel.
+ */
+export function VerdictBanner({ grade, xpAwarded, onNext }: { grade: Grade; xpAwarded: number | null; onNext?: () => void }) {
+    const base = 'flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-sm border-b';
+    if (grade.status === 'pass') {
+        return (
+            <div className={`${base} border-success/20 bg-success/10 text-success`} role="status">
+                <CheckCircle2 size={16} aria-hidden="true" />
+                <span className="font-semibold">Correct!{xpAwarded ? ` +${xpAwarded} XP` : ''}</span>
+                <span className="text-ink/80">{xpAwarded ? 'Lesson complete.' : 'You\'d already completed this lesson.'}</span>
+                {onNext && (
+                    <button onClick={onNext} className="ml-auto inline-flex items-center gap-1 text-xs font-semibold underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-success rounded">
+                        Next lesson <ArrowRight size={13} aria-hidden="true" />
+                    </button>
+                )}
+            </div>
+        );
+    }
+    if (grade.status === 'error') {
+        return (
+            <div className={`${base} border-danger/20 bg-danger/10 text-danger`} role="status">
+                <AlertTriangle size={16} aria-hidden="true" />
+                <span className="font-semibold">Not yet: your query hit an error.</span>
+                <span className="text-ink/80">See the tip below and in the lesson panel.</span>
+            </div>
+        );
+    }
+    const { title } = describeVerdict(grade.verdict, false);
+    return (
+        <div className={`${base} border-warm/20 bg-warm/10 text-warm`} role="status">
+            <XCircle size={16} aria-hidden="true" />
+            <span className="font-semibold">Not yet.</span>
+            <span className="text-ink">{title}</span>
+            <span className="text-ink/70">Hints are in the lesson panel.</span>
         </div>
     );
 }

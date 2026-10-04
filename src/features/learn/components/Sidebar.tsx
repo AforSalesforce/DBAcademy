@@ -183,7 +183,7 @@ const Sidebar: React.FC<SidebarProps> = ({ modules, activeLessonId, onAddModule,
                                             ) : (
                                                 <Circle size={16} className={cn("text-muted shrink-0", isActive && "text-accent")} />
                                             )}
-                                            <span className="truncate flex-1" title={lesson.title}>{lesson.title}</span>
+                                            <span className="flex-1 min-w-0 break-words leading-snug">{lesson.title}</span>
                                             {lesson.completed && <span className="sr-only">(completed)</span>}
                                             {onRemoveLesson && !lesson.builtIn && (
                                                 <button

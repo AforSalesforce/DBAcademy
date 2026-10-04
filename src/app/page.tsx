@@ -3,7 +3,7 @@ import { accountsEnabled } from '@/lib/features';
 import type { Metadata } from 'next';
 import { CURRICULUM } from '@/features/learn/curriculum/curriculum';
 import { JsonLd } from '@/components/PublicHeader';
-import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from '@/lib/site';
+import { REPO_URL, SITE_DESCRIPTION, SITE_NAME, SITE_URL } from '@/lib/site';
 import {
   Database, GraduationCap, Zap, BookOpen, BarChart3, Code2,
   ShieldCheck, Globe, ArrowRight, Play, Terminal, Table, GitBranch,
@@ -31,7 +31,7 @@ const FEATURES = [
     bg: 'rgba(0, 199, 190, 0.08)',
     border: 'rgba(0, 199, 190, 0.18)',
     title: 'Browser-Native Engines',
-    description: 'Full PostgreSQL, SQLite & NoSQL running in WebAssembly — zero install, zero server.',
+    description: 'Real PostgreSQL (via PGlite) and SQLite compiled to WebAssembly, plus a MongoDB-style document store. Nothing to install.',
     rotate: '',
   },
   {
@@ -153,7 +153,7 @@ export default function HomePage() {
 
       {/* ── Hero ─────────────────────────────────────────────────────────────── */}
       <section className="relative z-10 max-w-7xl mx-auto px-6 sm:px-10 pt-20 pb-8 lg:pt-28">
-        <div className="grid lg:grid-cols-[1fr_480px] gap-16 items-center">
+        <div className="grid md:grid-cols-[1fr_minmax(0,420px)] lg:grid-cols-[1fr_480px] gap-10 lg:gap-16 items-center">
           {/* Left — text */}
           <div className="relative">
             {/* Ghost decorative text */}
@@ -172,10 +172,10 @@ export default function HomePage() {
 
               {/* Headline */}
               <h1 className="stagger-2 heading-xl text-4xl sm:text-5xl lg:text-[64px] mb-6" style={{ color: '#EDF1FA' }}>
-                Master{' '}
-                <span className="text-gradient-teal">Database</span>
+                Learn{' '}
+                <span className="text-gradient-teal">SQL</span>
                 <br />
-                Engineering
+                and databases
                 <br />
                 <span style={{ color: '#8A97B3', fontStyle: 'italic', fontSize: '0.72em', fontWeight: 400 }}>by actually doing it.</span>
               </h1>
@@ -197,13 +197,16 @@ export default function HomePage() {
                   Start learning free
                 </Link>
                 <Link
-                  href="/code"
+                  href="/lessons"
                   className="inline-flex items-center justify-center gap-1.5 text-sm font-medium transition-colors cursor-pointer hover:underline underline-offset-4"
                   style={{ color: '#8A97B3' }}
                 >
-                  <Code2 className="w-4 h-4" aria-hidden="true" /> Or try the JavaScript &amp; Python sandbox
+                  Browse the {LESSON_COUNT} lessons <ArrowRight className="w-4 h-4" aria-hidden="true" />
                 </Link>
               </div>
+              <p className="stagger-4 text-sm mt-4" style={{ color: '#8A97B3' }}>
+                Every lesson is free. No sign-up, no install.
+              </p>
 
               {/* Micro stats */}
               <div className="stagger-5 flex items-center gap-6 mt-10">
@@ -222,7 +225,7 @@ export default function HomePage() {
           </div>
 
           {/* Right — code editor mockup */}
-          <div className="stagger-3 hidden lg:block relative">
+          <div className="stagger-3 hidden md:block relative">
             {/* Editor glow */}
             <div className="absolute inset-0 rounded-2xl blur-2xl opacity-30 -z-10" style={{ background: 'radial-gradient(ellipse at center, rgba(0,199,190,0.2), transparent 70%)' }} />
             <div className="rounded-2xl overflow-hidden" style={{ background: '#0C1018', border: '1px solid rgba(255,255,255,0.07)', boxShadow: '0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,199,190,0.08)' }}>
@@ -411,7 +414,7 @@ export default function HomePage() {
           <Database className="w-3.5 h-3.5" style={{ color: '#00C7BE' }} />
           <span className="font-semibold font-display" style={{ color: '#7A87A5' }}>DBAcademy</span>
         </div>
-        <div className="flex items-center justify-center gap-5">
+        <nav aria-label="Footer" className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 px-4">
           {accounts && (
             <>
               <Link href="/pricing" className="transition-colors cursor-pointer" style={{ color: '#7A87A5' }}>Pricing</Link>
@@ -421,7 +424,10 @@ export default function HomePage() {
           <Link href="/lessons" className="transition-colors cursor-pointer" style={{ color: '#7A87A5' }}>Lessons</Link>
           <Link href="/learn" className="transition-colors cursor-pointer" style={{ color: '#7A87A5' }}>Database</Link>
           <Link href="/code" className="transition-colors cursor-pointer" style={{ color: '#7A87A5' }}>Code</Link>
-        </div>
+          <Link href="/about" className="transition-colors cursor-pointer" style={{ color: '#7A87A5' }}>About</Link>
+          <Link href="/privacy" className="transition-colors cursor-pointer" style={{ color: '#7A87A5' }}>Privacy</Link>
+          <a href={REPO_URL} className="transition-colors cursor-pointer" style={{ color: '#7A87A5' }}>GitHub</a>
+        </nav>
       </footer>
     </main>
   );

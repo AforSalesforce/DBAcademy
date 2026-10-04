@@ -263,8 +263,10 @@ export default function CodePage() {
 
   // ── Run code ──────────────────────────────────────────────────────────────
 
-  const runCode = async () => {
+  /** `source` is the editor's live text when run by shortcut; buttons pass an event, so fall back to state. */
+  const runCode = async (source?: unknown) => {
     if (running) return;
+    const program = typeof source === 'string' ? source : code;
     setRunning(true);
     setOutput(null);
     try {
@@ -276,12 +278,12 @@ export default function CodePage() {
       await engine.init();
       initializedLangs.current.add(language);
 
-      const result = await engine.execute(code);
+      const result = await engine.execute(program);
       setOutput(result);
       incrementQueries();
       await codeHistoryStore.addRun({
         language,
-        code,
+        code: program,
         stdout: result.stdout,
         stderr: result.stderr,
         exitCode: result.exitCode,

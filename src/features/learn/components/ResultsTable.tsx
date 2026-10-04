@@ -14,6 +14,16 @@ interface ResultsTableProps {
     hasRun?: boolean;
     /** Plain-language explanation of `error`, when there is one. */
     errorHint?: string | null;
+    /** The query that produced these results, to word an empty result correctly. */
+    query?: string | null;
+}
+
+/** A read (SELECT, WITH, find…) that returned nothing matched 0 rows; it never "changed the database". */
+function looksLikeRead(query: string | null | undefined): boolean {
+    if (!query) return false;
+    const code = query.replace(/--[^\n]*|\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, '').trim();
+    const last = code.split(';').map(s => s.trim()).filter(Boolean).pop() ?? '';
+    return /^(SELECT|WITH|VALUES|EXPLAIN|PRAGMA|SHOW|TABLE)\b/i.test(last) || /\.(find|findOne|count|aggregate)\s*\(/.test(last);
 }
 
 function EmptyState({ title, detail }: { title: string; detail: string }) {
@@ -25,7 +35,7 @@ function EmptyState({ title, detail }: { title: string; detail: string }) {
     );
 }
 
-const ResultsTable: React.FC<ResultsTableProps> = ({ results, error, columns: runColumns = [], message, hasRun = true, errorHint }) => {
+const ResultsTable: React.FC<ResultsTableProps> = ({ results, error, columns: runColumns = [], message, hasRun = true, errorHint, query }) => {
     if (error) {
         return (
             <div role="alert">
@@ -43,10 +53,10 @@ const ResultsTable: React.FC<ResultsTableProps> = ({ results, error, columns: ru
         if (!hasRun) {
             return <EmptyState title="Nothing run yet" detail="Write a query and press Run (⌘↵ / Ctrl+↵). Results appear here." />;
         }
-        if (runColumns.length > 0 || message === NO_MATCH_MESSAGE) {
+        if (runColumns.length > 0 || message === NO_MATCH_MESSAGE || looksLikeRead(query)) {
             return <EmptyState title="Query ran: 0 rows matched" detail="Nothing fits those conditions. Check your filters or spelling; text comparisons are exact." />;
         }
-        return <EmptyState title="Statement ran successfully" detail="It changed the database but doesn't return rows. Run a SELECT to see the data." />;
+        return <EmptyState title="Done" detail="That statement ran. Statements like CREATE, INSERT, UPDATE and DELETE don't return rows; run a SELECT to see your data." />;
     }
 
     const columns = Object.keys(results[0]);

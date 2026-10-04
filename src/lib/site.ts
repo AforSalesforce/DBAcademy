@@ -9,3 +9,7 @@ export const SITE_NAME = 'DBAcademy';
 
 export const SITE_DESCRIPTION =
   'Free interactive SQL course: 22 lessons with graded challenges. Run PostgreSQL, SQLite and NoSQL in your browser, starting with a murder mystery.';
+
+/** Public source code; GitHub Issues doubles as the contact channel. */
+export const REPO_URL = 'https://github.com/AforSalesforce/DBAcademy';
+export const CONTACT_URL = `${REPO_URL}/issues`;

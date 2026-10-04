@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Database, GraduationCap } from 'lucide-react';
 import { useFeatures } from '@/components/FeaturesProvider';
+import { REPO_URL } from '@/lib/site';
 
 export function SiteFooter() {
   const { accounts } = useFeatures();
@@ -20,18 +21,21 @@ export function SiteFooter() {
             </div>
             <div>
               <div className="font-bold tracking-tight font-display text-sm" style={{ color: '#EDF1FA' }}>DBAcademy</div>
-              <div className="text-xs" style={{ color: '#7A87A5' }}>Master Database Engineering</div>
+              <div className="text-xs" style={{ color: '#7A87A5' }}>Learn SQL by doing</div>
             </div>
           </div>
 
           {/* Links */}
-          <nav className="flex items-center gap-6 text-sm" style={{ color: '#7A87A5' }}>
+          <nav aria-label="Footer" className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm" style={{ color: '#7A87A5' }}>
             <Link href="/" className="hover:text-[#EDF1FA] transition-colors cursor-pointer">Home</Link>
             <Link href="/lessons" className="hover:text-[#EDF1FA] transition-colors cursor-pointer">Lessons</Link>
             <Link href="/learn" className="hover:text-[#EDF1FA] transition-colors cursor-pointer">App</Link>
             {accounts && <Link href="/pricing" className="hover:text-[#EDF1FA] transition-colors cursor-pointer">Pricing</Link>}
             <Link href="/dashboard" className="hover:text-[#EDF1FA] transition-colors cursor-pointer">Dashboard</Link>
             {accounts && <Link href="/auth/signin" className="hover:text-[#EDF1FA] transition-colors cursor-pointer">Sign In</Link>}
+            <Link href="/about" className="hover:text-[#EDF1FA] transition-colors cursor-pointer">About</Link>
+            <Link href="/privacy" className="hover:text-[#EDF1FA] transition-colors cursor-pointer">Privacy</Link>
+            <a href={REPO_URL} className="hover:text-[#EDF1FA] transition-colors cursor-pointer">GitHub</a>
           </nav>
 
           {/* Copy */}

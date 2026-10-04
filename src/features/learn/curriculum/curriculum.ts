@@ -41,7 +41,22 @@ Retrieve the crime scene report for the murder that happened on **Jan 15, 2018**
 
 The reports live in the \`crime_scene_report\` table. Dates are stored as whole numbers in \`YYYYMMDD\` form, so Jan 15, 2018 is \`20180115\`.
 
+## Filtering with WHERE
+\`SELECT * FROM crime_scene_report\` returns every report. Add \`WHERE\` to keep only the rows you want:
+
+\`\`\`sql
+SELECT * FROM crime_scene_report
+WHERE city = 'Boston';
+\`\`\`
+
+- Text goes in single quotes (\`'Boston'\`); numbers don't (\`date = 20180120\`).
+- Combine conditions with \`AND\`: \`WHERE city = 'Boston' AND type = 'fraud'\`.
+
 When you find the report, read its **description** carefully. It tells you where to look next.
+
+---
+
+*This case is inspired by the [SQL Murder Mystery](https://mystery.knightlab.com/) from Northwestern University Knight Lab (MIT License). The people and records in our version are our own.*
                 `,
                 quiz: [
                     {

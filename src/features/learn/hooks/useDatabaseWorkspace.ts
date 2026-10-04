@@ -71,6 +71,8 @@ export function useDatabaseWorkspace(dbType: EngineType, activeProjectId: string
   /** False until something has run, so the results panel can tell "nothing yet" from "0 rows". */
   const [hasRun, setHasRun] = useState(false);
   const [resultMessage, setResultMessage] = useState<string | null>(null);
+  /** The text that produced the current results (so the panel can word an empty result). */
+  const [lastRunQuery, setLastRunQuery] = useState<string | null>(null);
 
   const { incrementQueries } = useProgressStore();
   const runHistoryStore = useRunHistoryStore();
@@ -161,6 +163,18 @@ export function useDatabaseWorkspace(dbType: EngineType, activeProjectId: string
     setQuery(text);
   }, []);
 
+  /** Empty the results panel (e.g. when moving to another lesson). */
+  const clearResults = useCallback(() => {
+    setResults([]);
+    setResultColumns([]);
+    setResultMessage(null);
+    setLastRunQuery(null);
+    setHasRun(false);
+    setError(null);
+    setViewingTableName(null);
+    setLastRunDuration(null);
+  }, []);
+
   const refreshSchema = useCallback(async () => {
     if (!db) return;
     try {
@@ -189,6 +203,7 @@ export function useDatabaseWorkspace(dbType: EngineType, activeProjectId: string
     try {
       const res = await db.execute(q);
       const duration = Math.round(performance.now() - start);
+      setLastRunQuery(q);
       setResults(res.rows);
       setResultColumns(res.columns);
       setResultMessage(res.message ?? null);
@@ -235,6 +250,7 @@ export function useDatabaseWorkspace(dbType: EngineType, activeProjectId: string
     setError(null);
     try {
       const res = await db.execute(sql);
+      setLastRunQuery(sql);
       setResults(res.rows);
       setResultColumns(res.columns);
       setResultMessage(res.message ?? null);
@@ -343,7 +359,7 @@ export function useDatabaseWorkspace(dbType: EngineType, activeProjectId: string
   }, [db, dbType, activeProjectId]);
 
   return {
-    db, query, setQuery, setQueryForProject, results, resultColumns, resultMessage, hasRun, schema, error, setError,
+    db, query, setQuery, setQueryForProject, results, resultColumns, resultMessage, lastRunQuery, hasRun, clearResults, schema, error, setError,
     loading, isSeeding, viewingTableName, lastRunDuration,
     refreshSchema, runQuery, executeDirect, handleViewTable,
     handleSeedData, handleResetDb,

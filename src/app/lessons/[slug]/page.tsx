@@ -7,7 +7,7 @@ import { ArrowLeft, ArrowRight, ListChecks, Play, Target } from 'lucide-react';
 import { PublicHeader, JsonLd } from '@/components/PublicHeader';
 import { SiteFooter } from '@/components/SiteFooter';
 import { ENGINE_LABEL, LEARNING_PATH, findStepBySlug } from '@/features/learn/curriculum/path';
-import { lessonBody, lessonDescription, lessonJsonLd } from '@/features/learn/curriculum/seo';
+import { lessonBody, lessonDescription, lessonJsonLd, lessonSummary } from '@/features/learn/curriculum/seo';
 
 // One static page per path lesson; any other slug is a 404.
 export const dynamicParams = false;
@@ -62,7 +62,7 @@ export default async function LessonPage({ params }: Params) {
             Lesson {index + 1} of {LEARNING_PATH.length} · {engine}
           </p>
           <h1 className="heading-xl text-4xl sm:text-5xl mb-4">{lesson.title}</h1>
-          <p className="text-lg text-muted leading-relaxed">{lessonDescription(step)}</p>
+          <p className="text-lg text-muted leading-relaxed">{lessonSummary(step)}</p>
         </header>
 
         <article className="prose prose-invert max-w-none prose-code:before:content-none prose-code:after:content-none prose-headings:font-display prose-a:text-accent mb-10">

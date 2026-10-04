@@ -12,16 +12,17 @@ import { SavedQueriesPanel } from '@/features/learn/components/SavedQueriesPanel
 import { RunHistory } from '@/features/learn/components/RunHistory';
 import { NotesDrawer } from '@/features/learn/components/NotesDrawer';
 import { SchemaDesigner } from '@/features/learn/components/SchemaDesigner';
-import { ChallengeCard } from '@/features/learn/components/ChallengeCard';
+import { ChallengeCard, VerdictBanner } from '@/features/learn/components/ChallengeCard';
 import { LearnHome } from '@/features/learn/components/LearnHome';
 import { ENGINE_LABEL, PathStep, findStep, nextIncompleteStep, stepAfter } from '@/features/learn/curriculum/path';
 import { gradeAttempt, Grade } from '@/features/learn/grading/grade';
 import { explainError } from '@/features/learn/grading/explain-error';
 import { loadDraft, saveDraft } from '@/features/learn/lesson-drafts';
+import { modKeyLabel } from '@/lib/platform';
 import {
   Database, GraduationCap, BarChart3, NotebookPen, ChevronDown, ChevronUp,
   FolderOpen, Plus, Trash2, Check, Play, Sprout, RotateCcw,
-  PanelLeftClose, PanelLeftOpen, CheckCircle2, ListTree, Code2, MoreHorizontal,
+  PanelLeftClose, PanelLeftOpen, CheckCircle2, ListTree, Code2, MoreHorizontal, Save as SaveIcon,
   BookOpen, Table2, GitBranch, Bookmark, LayoutTemplate,
 } from 'lucide-react';
 import { EngineType } from '@/db-engines/types';
@@ -96,6 +97,8 @@ export default function LearnPage() {
   };
   // Phones show one pane at a time, chosen from the bottom tab bar.
   const [mobileView, setMobileView] = useState<'path' | 'lesson' | 'editor'>(() => (homeDismissed ? 'editor' : 'lesson'));
+  /** Show the last Check's verdict above the results until the learner runs something else. */
+  const [showVerdict, setShowVerdict] = useState(false);
   const [challengeUi, setChallengeUi] = useState<{ grade: Grade | null; checking: boolean; xpAwarded: number | null }>(
     { grade: null, checking: false, xpAwarded: null },
   );
@@ -196,6 +199,14 @@ export default function LearnPage() {
         e.preventDefault();
         openSaveQueryModal(workspace.query, dbType);
       }
+      // Run from anywhere on the page, not only inside the editor (which
+      // handles the shortcut itself). Text fields keep Ctrl+Enter for themselves.
+      if (mod && e.key === 'Enter') {
+        const target = e.target as HTMLElement | null;
+        if (target?.closest('.monaco-editor, textarea, input, [contenteditable="true"]')) return;
+        e.preventDefault();
+        runQuery();
+      }
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
@@ -204,7 +215,10 @@ export default function LearnPage() {
   // ── Init editor width on desktop mount ────────────────────────────────────
   useEffect(() => {
     if (typeof window !== 'undefined' && window.innerWidth >= 768) {
-      setEditorWidthPx(Math.round(window.innerWidth * 0.5));
+      // Half the screen, but leave the sidebar and lesson ~260px each first
+      // (on a 1000px window the editor used to squeeze both until titles clipped).
+      const w = window.innerWidth;
+      setEditorWidthPx(Math.round(Math.max(380, Math.min(w * 0.5, w - 64 - 8 - 2 * 260))));
     }
   }, []);
 
@@ -253,9 +267,10 @@ export default function LearnPage() {
 
   // ── Run query (wraps the workspace hook to also drive the results tab) ────
 
-  const runQuery = (overrideQuery?: string) => {
+  const runQuery = (overrideQuery?: string, fromCheck = false) => {
     // While an engine is switching, the old one is still attached: don't run on it.
     if (workspace.loading) return Promise.resolve();
+    if (!fromCheck) setShowVerdict(false);
     setResultsTab('results');
     return workspace.runQuery(overrideQuery);
   };
@@ -280,11 +295,8 @@ export default function LearnPage() {
   // ── Project helpers ────────────────────────────────────────────────────────
 
   const handleSelectProject = (project: Project) => {
-    const lessonEngine = CURRICULUM.find(m => m.id === activeLessonModuleId)?.engine;
-    if (activeLesson && lessonEngine && lessonEngine !== project.engine) {
-      setActiveLesson(null);
-      setActiveLessonModuleId(null);
-    }
+    // An open lesson stays open in another engine; its challenge card offers
+    // the way back (see engineMismatch).
     projectStore.setActiveProject(project.id);
     setProjectMenuOpen(false);
     setShowNewProject(false);
@@ -388,6 +400,8 @@ export default function LearnPage() {
     const fullLesson = getLessonById(moduleId, lesson.id);
     setActiveLessonModuleId(moduleId);
     setChallengeUi({ grade: null, checking: false, xpAwarded: null });
+    setShowVerdict(false);
+    workspace.clearResults(); // don't leave the previous lesson's output on screen
     if (fullLesson) {
       setActiveLesson(fullLesson);
       // The learner's own attempt if they have one; otherwise the starter.
@@ -413,7 +427,7 @@ export default function LearnPage() {
 
   const checkChallenge = async () => {
     const challenge = activeLesson?.challenge;
-    if (!activeLesson || !challenge || !activeLessonModuleId || !lessonEngine || workspace.loading) return;
+    if (!activeLesson || !challenge || !activeLessonModuleId || !lessonEngine || workspace.loading || lessonEngine !== dbType) return;
     if (lessonEngine !== 'sqlite' && lessonEngine !== 'postgres' && lessonEngine !== 'nosql') return;
     const lessonId = activeLesson.id;
     const attempt = workspace.query;
@@ -421,10 +435,11 @@ export default function LearnPage() {
     // Show the attempt's own output too, as if they'd pressed Run.
     const [grade] = await Promise.all([
       gradeAttempt(lessonEngine, lessonId, challenge, attempt),
-      runQuery(attempt),
+      runQuery(attempt, true),
     ]);
     const xpAwarded = grade.status === 'pass' ? completeChallenge(lessonId, activeLessonModuleId) : null;
     setChallengeUi({ grade, checking: false, xpAwarded });
+    setShowVerdict(true);
     setMobileView('lesson'); // on phones, the verdict is on the lesson pane
   };
 
@@ -458,6 +473,15 @@ export default function LearnPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     openStep(step);
   }, [workspace.loading]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Narrow editor pane: drop the file tab and shortcut hints, shorten labels,
+  // so Run is never pushed off-screen.
+  const compactToolbar = editorWidthPx !== null && editorWidthPx < 600;
+  const tinyToolbar = editorWidthPx !== null && editorWidthPx < 440;
+  const mod = modKeyLabel();
+
+  // A lesson stays open when you switch engine, but can't be checked until you switch back.
+  const engineMismatch = Boolean(activeLesson?.challenge && lessonEngine && lessonEngine !== dbType);
 
   const explainForEngine = (message: string) => explainError(message, { engine: dbType, tables: workspace.schema });
 
@@ -805,9 +829,14 @@ export default function LearnPage() {
                   onUseSolution={sql => { workspace.setQuery(sql); setMobileView('editor'); }}
                   onNextLesson={nextLesson ? () => openStep(nextLesson) : undefined}
                   explain={explainForEngine}
+                  engineMismatch={engineMismatch ? {
+                    lessonEngine: ENGINE_LABEL[lessonEngine!],
+                    currentEngine: ENGINE_LABEL[dbType],
+                    onSwitchBack: () => switchEngine(lessonEngine!),
+                  } : undefined}
                 />
               )}
-              onClose={() => setActiveLesson(null)}
+              onClose={() => { setActiveLesson(null); setActiveLessonModuleId(null); }}
               onEdit={
                 !CURRICULUM.some(m => m.lessons.some(l => l.id === activeLesson.id))
                   ? newContent => handleUpdateLessonContent(activeLesson.id, newContent)
@@ -852,10 +881,10 @@ export default function LearnPage() {
 
           {/* ── Editor toolbar ─────────────────────────────────────────────── */}
           <div className="flex items-center justify-between px-3 shrink-0 h-10" style={{ background: '#0C1018', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-            {/* Left: file-tab style label + engine badge */}
-            <div className="flex items-center gap-2">
+            {/* Left: file-tab style label + engine switcher */}
+            <div className="flex items-center gap-2 min-w-0">
               {/* Pseudo file-tab */}
-              <div className="hidden md:flex items-center gap-1.5 px-3 h-10 border-b-2 text-xs font-medium" style={{ borderColor: '#00C7BE', color: '#EDF1FA' }}>
+              <div className={`${compactToolbar ? 'hidden' : 'hidden md:flex'} items-center gap-1.5 px-3 h-10 border-b-2 text-xs font-medium`} style={{ borderColor: '#00C7BE', color: '#EDF1FA' }}>
                 <div className="w-2 h-2 rounded-full" style={{ background: dbType === 'postgres' ? '#00C7BE' : dbType === 'nosql' ? '#22C55E' : '#F59E0B' }} />
                 {dbType === 'nosql' ? 'script.js' : 'query.sql'}
               </div>
@@ -882,35 +911,42 @@ export default function LearnPage() {
               </div>
             </div>
 
-            {/* Right: Save + Check + Run */}
-            <div className="flex items-center gap-1.5">
+            {/* Right: Check + Save + Run. Never shrinks, so Run always stays on screen. */}
+            <div className="flex items-center gap-1.5 shrink-0">
               {activeLesson?.challenge && (
                 <button
                   onClick={checkChallenge}
-                  disabled={challengeUi.checking || workspace.loading}
-                  title="Check your answer to this lesson's challenge"
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-semibold transition-colors cursor-pointer disabled:opacity-60"
+                  disabled={challengeUi.checking || workspace.loading || engineMismatch}
+                  title={engineMismatch
+                    ? `Switch back to ${ENGINE_LABEL[lessonEngine!]} to check this lesson`
+                    : "Check your answer to this lesson's challenge"}
+                  aria-label={tinyToolbar ? 'Check my answer' : undefined}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ color: '#00C7BE', background: 'rgba(0,199,190,0.08)', border: '1px solid rgba(0,199,190,0.3)' }}
                 >
                   <CheckCircle2 style={{ width: 12, height: 12 }} aria-hidden="true" />
-                  {challengeUi.checking ? 'Checking…' : 'Check'}
+                  {!tinyToolbar && (challengeUi.checking ? 'Checking…' : 'Check')}
                 </button>
               )}
               <button
                 onClick={() => openSaveQueryModal(workspace.query, dbType)}
-                title="Save query (⌘S)"
+                title={`Save query (${mod}S)`}
+                aria-label="Save query"
                 className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-medium transition-colors cursor-pointer"
                 style={{ color: '#8A97B3', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
               >
-                Save <kbd className="text-[9px] px-1 py-0.5 rounded" style={{ background: 'rgba(255,255,255,0.06)', color: '#8A97B3' }}>⌘S</kbd>
+                {compactToolbar
+                  ? <SaveIcon style={{ width: 13, height: 13 }} aria-hidden="true" />
+                  : <>Save <kbd className="text-[9px] px-1 py-0.5 rounded" style={{ background: 'rgba(255,255,255,0.06)', color: '#8A97B3' }}>{mod}S</kbd></>}
               </button>
               <button
                 onClick={() => runQuery()}
                 disabled={workspace.loading}
+                title={`Run query (${mod}Enter)`}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-all active:scale-95 cursor-pointer disabled:opacity-50"
                 style={{ background: '#00C7BE', color: '#07090F', boxShadow: '0 0 12px rgba(0,199,190,0.2)' }}
               >
-                <Play style={{ width: 12, height: 12 }} /> Run <kbd className="text-[9px] opacity-60">⌘↵</kbd>
+                <Play style={{ width: 12, height: 12 }} aria-hidden="true" /> Run {!compactToolbar && <kbd className="text-[9px] opacity-60">{mod}↵</kbd>}
               </button>
             </div>
           </div>
@@ -926,7 +962,7 @@ export default function LearnPage() {
             <SqlEditor
               value={workspace.query}
               onChange={val => workspace.setQuery(val || '')}
-              onRun={() => runQuery()}
+              onRun={text => runQuery(text)}
               language={dbType === 'nosql' ? 'javascript' : 'sql'}
             />
           </div>
@@ -1006,6 +1042,13 @@ export default function LearnPage() {
 
             {!resultsCollapsed && (
               <div className="flex-1 overflow-auto">
+                {resultsTab === 'results' && showVerdict && challengeUi.grade && (
+                  <VerdictBanner
+                    grade={challengeUi.grade}
+                    xpAwarded={challengeUi.xpAwarded}
+                    onNext={challengeUi.grade.status === 'pass' && nextLesson ? () => openStep(nextLesson) : undefined}
+                  />
+                )}
                 {resultsTab === 'results' && (
                   <ResultsTable
                     results={workspace.results}
@@ -1014,6 +1057,7 @@ export default function LearnPage() {
                     message={workspace.resultMessage}
                     hasRun={workspace.hasRun}
                     errorHint={workspace.error ? explainForEngine(workspace.error) : null}
+                    query={workspace.lastRunQuery}
                   />
                 )}
                 {resultsTab === 'history' && (

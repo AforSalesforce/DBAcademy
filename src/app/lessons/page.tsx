@@ -5,7 +5,7 @@ import { PublicHeader, JsonLd } from '@/components/PublicHeader';
 import { SiteFooter } from '@/components/SiteFooter';
 import { CURRICULUM } from '@/features/learn/curriculum/curriculum';
 import { ENGINE_LABEL, LEARNING_PATH, TOTAL_PATH_LESSONS } from '@/features/learn/curriculum/path';
-import { courseJsonLd, lessonDescription } from '@/features/learn/curriculum/seo';
+import { courseJsonLd, lessonSummary } from '@/features/learn/curriculum/seo';
 
 const DESCRIPTION = `${TOTAL_PATH_LESSONS} free interactive SQL lessons with graded challenges: SELECT, WHERE, JOINs, GROUP BY, schema design, PostgreSQL window functions and NoSQL, all in your browser.`;
 
@@ -64,7 +64,7 @@ export default function LessonsIndexPage() {
                         {step.lesson.title}
                         <ArrowRight className="w-4 h-4 text-faint group-hover:text-accent transition-colors" aria-hidden="true" />
                       </span>
-                      <span className="block text-sm text-muted leading-relaxed">{lessonDescription(step)}</span>
+                      <span className="block text-sm text-muted leading-relaxed">{lessonSummary(step)}</span>
                     </Link>
                   </li>
                 ))}

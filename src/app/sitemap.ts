@@ -11,6 +11,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...LEARNING_PATH.map(step => ({ path: `/lessons/${step.slug}`, priority: 0.8 })),
     { path: '/learn', priority: 0.7 },
     { path: '/code', priority: 0.5 },
+    { path: '/about', priority: 0.4 },
+    { path: '/privacy', priority: 0.3 },
     // Pricing only exists while accounts are switched on.
     ...(accountsEnabled() ? [{ path: '/pricing', priority: 0.5 }] : []),
   ];
