@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
+import { isSupabaseConfigured } from '@/lib/supabase/config';
 
 // JavaScript and Python run entirely client-side (Web Worker / Pyodide).
 // Only compiled/server languages reach this route.
@@ -31,42 +33,24 @@ const MAX_STDIN_BYTES = 1_000;
 const JUDGE0_BASE = (process.env.JUDGE0_API_URL ?? 'https://judge0-ce.p.rapidapi.com').replace(/\/$/, '');
 const JUDGE0_KEY  = process.env.JUDGE0_API_KEY ?? '';
 
-// ── In-memory rate limiter ────────────────────────────────────────────────────
-const RATE_LIMIT     = 20;
-const RATE_WINDOW_MS = 60_000;
+// Local development without Supabase: set ALLOW_ANONYMOUS_CODE_EXEC=true to
+// run code without signing in. Deliberately ignored in production (including
+// Vercel previews, which also run with NODE_ENV=production) — there, missing
+// auth config fails closed rather than exposing the Judge0 key to anyone.
+const ALLOW_ANONYMOUS =
+  process.env.ALLOW_ANONYMOUS_CODE_EXEC === 'true' && process.env.NODE_ENV !== 'production';
 
-interface Bucket { count: number; resetAt: number }
-const rateMap = new Map<string, Bucket>();
-
-function isRateLimited(key: string): boolean {
-  const now = Date.now();
-  const b = rateMap.get(key);
-  if (!b || now > b.resetAt) {
-    rateMap.set(key, { count: 1, resetAt: now + RATE_WINDOW_MS });
-    return false;
-  }
-  if (b.count >= RATE_LIMIT) return true;
-  b.count++;
-  return false;
-}
+type QuotaResult = 'ok' | 'minute_limit' | 'daily_limit' | 'unauthenticated';
 
 // ── Route handler ─────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
 
-  // 1. Auth — require signed-in user when Supabase is configured.
-  let rateLimitKey = req.headers.get('x-forwarded-for')
-    ?? req.headers.get('x-real-ip')
-    ?? 'unknown';
-
-  const supabaseConfigured =
-    Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL) &&
-    Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-
-  if (supabaseConfigured) {
+  // 1. Auth — always required, unless explicitly running anonymous local dev.
+  let supabase: Awaited<ReturnType<typeof createClient>> | null = null;
+  if (isSupabaseConfigured()) {
     try {
-      const { createClient } = await import('@/lib/supabase/server');
-      const supabase = await createClient();
+      supabase = await createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         return NextResponse.json(
@@ -74,24 +58,20 @@ export async function POST(req: NextRequest) {
           { status: 401 },
         );
       }
-      rateLimitKey = user.id;
     } catch {
       return NextResponse.json(
         { error: 'Could not verify authentication. Try again.' },
         { status: 401 },
       );
     }
-  }
-
-  // 2. Rate limit
-  if (isRateLimited(rateLimitKey)) {
+  } else if (!ALLOW_ANONYMOUS) {
     return NextResponse.json(
-      { error: 'Rate limit reached (20 runs/min). Wait a moment and try again.' },
-      { status: 429, headers: { 'Retry-After': '60' } },
+      { error: 'Server-side code execution is not available.' },
+      { status: 503 },
     );
   }
 
-  // 3. Parse body
+  // 2. Parse body
   let body: Record<string, unknown>;
   try {
     body = await req.json();
@@ -103,7 +83,7 @@ export async function POST(req: NextRequest) {
   const code     = typeof body.code     === 'string' ? body.code     : '';
   const stdin    = typeof body.stdin    === 'string' ? body.stdin    : '';
 
-  // 4. Validate
+  // 3. Validate (before spending quota on a request that can't run)
   if (!ALLOWED_LANGUAGES.has(language)) {
     return NextResponse.json({
       error: `'${language || '(none)'}' is not a supported server-executed language. ` +
@@ -120,6 +100,35 @@ export async function POST(req: NextRequest) {
   }
   if (Buffer.byteLength(stdin, 'utf8') > MAX_STDIN_BYTES) {
     return NextResponse.json({ error: 'Stdin exceeds the 1 KB maximum.' }, { status: 400 });
+  }
+
+  // 4. Quota — enforced in Postgres (consume_code_execution, migration 005) so
+  //    it holds across serverless instances. Fails closed if the check errors.
+  if (supabase) {
+    const { data, error } = await supabase.rpc('consume_code_execution');
+    if (error) {
+      console.error('consume_code_execution failed:', error.message);
+      return NextResponse.json(
+        { error: 'Code execution is temporarily unavailable. Try again shortly.' },
+        { status: 503 },
+      );
+    }
+    const quota = data as QuotaResult;
+    if (quota === 'unauthenticated') {
+      return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+    }
+    if (quota === 'minute_limit') {
+      return NextResponse.json(
+        { error: 'Rate limit reached (20 runs/min). Wait a moment and try again.' },
+        { status: 429, headers: { 'Retry-After': '60' } },
+      );
+    }
+    if (quota === 'daily_limit') {
+      return NextResponse.json(
+        { error: 'Daily run limit reached. It resets over the next 24 hours.' },
+        { status: 429, headers: { 'Retry-After': '3600' } },
+      );
+    }
   }
 
   const languageId = JUDGE0_LANG_ID[language];
@@ -149,8 +158,9 @@ export async function POST(req: NextRequest) {
 
     if (!j0Res.ok) {
       const text = await j0Res.text().catch(() => '');
+      console.error(`Judge0 returned ${j0Res.status}: ${text.slice(0, 300)}`);
       return NextResponse.json(
-        { error: `Execution service returned ${j0Res.status}: ${text.slice(0, 300)}` },
+        { error: `Execution service error (${j0Res.status}). Try again shortly.` },
         { status: 502 },
       );
     }
@@ -193,18 +203,10 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'network error';
+    console.error('Could not reach Judge0:', err instanceof Error ? err.message : err);
     return NextResponse.json(
-      { error: `Could not reach execution service: ${msg}` },
+      { error: 'Could not reach the execution service. Try again shortly.' },
       { status: 503 },
     );
   }
-}
-
-export async function GET() {
-  return NextResponse.json({
-    languages: [...ALLOWED_LANGUAGES],
-    backend: JUDGE0_KEY ? 'judge0-rapidapi' : 'judge0-self-hosted',
-    endpoint: JUDGE0_BASE,
-  });
 }

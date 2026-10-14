@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
 import type { Plan } from '@/features/billing/plans';
+import { useFeatures } from '@/components/FeaturesProvider';
 
 export interface Profile {
   id: string;
@@ -20,43 +20,29 @@ export interface Profile {
  */
 export function useProfile() {
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { accounts } = useFeatures();
+  const [loading, setLoading] = useState(accounts);
 
   useEffect(() => {
-    if (!isSupabaseConfigured) {
-      setLoading(false);
-      return;
-    }
-
-    const supabase = createClient();
+    if (!accounts) return; // no accounts → nobody can be signed in
     let cancelled = false;
 
     (async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
+      try {
+        const res = await fetch('/api/me', { cache: 'no-store' });
+        const data = res.ok ? ((await res.json()) as { profile: Profile | null }) : null;
+        if (!cancelled) setProfile(data?.profile ?? null);
+      } catch {
+        if (!cancelled) setProfile(null);
+      } finally {
         if (!cancelled) setLoading(false);
-        return;
-      }
-
-      const { data } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
-      if (!cancelled) {
-        setProfile((data as Profile) ?? null);
-        setLoading(false);
       }
     })();
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [accounts]);
 
   return { profile, loading };
 }

@@ -3,12 +3,15 @@
 import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
+import { signUpWithPassword } from '@/features/auth/actions';
 import { Database, GraduationCap, Eye, EyeOff, CheckCircle, ArrowRight, BookOpen, Users } from 'lucide-react';
 
 function SignUpContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  // Display-only: which plan the visitor clicked on the pricing page. It is
+  // never sent to the server — every account starts on Free, and only the
+  // Stripe webhook can upgrade it.
   const plan = searchParams.get('plan') || 'free';
 
   const [name, setName] = useState('');
@@ -36,32 +39,23 @@ function SignUpContent() {
         return;
       }
 
-      if (!isSupabaseConfigured) {
-        setError('Auth is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to your environment.');
+      const result = await signUpWithPassword({ name, email, password, role });
+
+      if (result.error) {
+        setError(result.error);
         return;
       }
 
-      const supabase = createClient();
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { data: { name, role, plan } },
-      });
-
-      if (signUpError) {
-        setError(signUpError.message);
-        return;
-      }
-
-      if (!data.session) {
+      if (result.needsConfirmation) {
         setError('Check your email to confirm your account, then sign in.');
         return;
       }
 
-      router.push('/dashboard');
+      // Paid-plan signups still need to go through checkout.
+      router.push(plan === 'pro' || plan === 'institution' ? '/pricing' : '/dashboard');
       router.refresh();
-    } catch (err: any) {
-      setError(err.message || 'Registration failed');
+    } catch {
+      setError('Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -106,7 +100,7 @@ function SignUpContent() {
         <div className="rounded-2xl p-8 shadow-2xl" style={{ background: '#0C1018', border: '1px solid rgba(255,255,255,0.07)' }}>
           <div className="text-center mb-6">
             <h1 className="text-2xl font-bold mb-1" style={{ color: '#EDF1FA' }}>Create your account</h1>
-            <p className="text-sm" style={{ color: '#5C6B8A' }}>Start mastering databases today</p>
+            <p className="text-sm" style={{ color: '#8A97B3' }}>Start mastering databases today</p>
           </div>
 
           {error && (
@@ -177,7 +171,7 @@ function SignUpContent() {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3.5 top-1/2 -translate-y-1/2 transition-colors cursor-pointer"
-                  style={{ color: '#5C6B8A' }}
+                  style={{ color: '#8A97B3' }}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -197,7 +191,7 @@ function SignUpContent() {
                     className="flex items-center justify-center gap-2 p-3 rounded-xl text-sm font-semibold transition-all cursor-pointer"
                     style={role === r
                       ? { border: '1px solid #00C7BE', background: 'rgba(0,199,190,0.1)', color: '#00C7BE' }
-                      : { border: '1px solid rgba(255,255,255,0.08)', background: '#111724', color: '#5C6B8A' }
+                      : { border: '1px solid rgba(255,255,255,0.08)', background: '#111724', color: '#8A97B3' }
                     }
                   >
                     {r === 'student' ? <BookOpen className="w-4 h-4" /> : <Users className="w-4 h-4" />}
@@ -225,7 +219,7 @@ function SignUpContent() {
           </form>
 
           <div className="mt-6 text-center">
-            <p className="text-sm" style={{ color: '#5C6B8A' }}>
+            <p className="text-sm" style={{ color: '#8A97B3' }}>
               Already have an account?{' '}
               <Link href="/auth/signin" className="font-semibold transition-colors cursor-pointer" style={{ color: '#00C7BE' }}>
                 Sign in
@@ -234,7 +228,7 @@ function SignUpContent() {
           </div>
         </div>
 
-        <p className="text-center text-xs mt-5" style={{ color: '#2E3A52' }}>
+        <p className="text-center text-xs mt-5" style={{ color: '#7A87A5' }}>
           By creating an account, you agree to our Terms of Service and Privacy Policy.
         </p>
       </div>

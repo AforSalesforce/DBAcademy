@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, DM_Sans } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { Analytics } from "@vercel/analytics/next";
 
 const display = Bricolage_Grotesque({
   subsets: ["latin"],
@@ -22,33 +23,38 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  // Canonical URLs and preview images resolve against the official domain.
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: "DBAcademy | Interactive Database Learning Platform",
+    default: "DBAcademy: learn SQL, PostgreSQL and NoSQL by doing",
     template: "%s | DBAcademy"
   },
-  description: "Master PostgreSQL, SQLite & NoSQL with interactive lessons, quizzes, and a browser-based SQL playground. For students, schools, and enterprises.",
-  keywords: ["SQL", "database", "learning", "PostgreSQL", "SQLite", "NoSQL", "interactive", "education", "programming"],
-  authors: [{ name: "DBAcademy" }],
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
   openGraph: {
-    title: "DBAcademy — Master Database Engineering",
-    description: "Interactive SQL playground with guided lessons. Learn by doing — 100% in your browser.",
     type: "website",
-    siteName: "DBAcademy",
+    siteName: SITE_NAME,
+    locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
-    title: "DBAcademy — Master Database Engineering",
-    description: "Interactive SQL playground with guided lessons. Learn by doing.",
   },
   robots: { index: true, follow: true },
+  // Google Search Console ownership of https://www.dbacademy.online/.
+  // Must stay in place: removing it un-verifies the property.
+  verification: { google: "gxxQdjdOk4fGSMgAaSkqDK7UeY_ubvJcMPInOzFys4Y" },
 };
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ProgressSync } from "@/components/ProgressSync";
+import { FeaturesProvider } from "@/components/FeaturesProvider";
+import { accountsEnabled } from "@/lib/features";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site";
 
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const features = { accounts: accountsEnabled() };
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${display.variable} ${body.variable} ${body.className}`}>
@@ -58,11 +64,15 @@ export default function RootLayout({
           forcedTheme="dark"
           disableTransitionOnChange
         >
-          <ErrorBoundary>
-            <ProgressSync />
-            {children}
-          </ErrorBoundary>
+          <FeaturesProvider features={features}>
+            <ErrorBoundary>
+              {features.accounts && <ProgressSync />}
+              {children}
+            </ErrorBoundary>
+          </FeaturesProvider>
         </ThemeProvider>
+        {/* Cookieless visitor counts (Vercel Web Analytics). Described on /privacy. */}
+        <Analytics />
       </body>
     </html>
   );

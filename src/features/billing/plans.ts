@@ -15,6 +15,12 @@ export interface PlanLimits {
   cloudSnapshots: boolean;
   /** Phase B canvas schema editor. */
   canvasSchemaEditor: boolean;
+  /**
+   * Server-run code (Java, C, C++, Go) per day. Enforced in Postgres by
+   * consume_code_execution() in supabase/migrations/005_security_hardening.sql;
+   * a test keeps this number in step with the SQL.
+   */
+  dailyServerRuns: number;
 }
 
 /**
@@ -31,6 +37,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     maxSchemaDesigns: 1,
     cloudSnapshots: false,
     canvasSchemaEditor: false,
+    dailyServerRuns: 100,
   },
   pro: {
     label: 'Pro',
@@ -41,6 +48,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     maxSchemaDesigns: Infinity,
     cloudSnapshots: true,
     canvasSchemaEditor: true,
+    dailyServerRuns: 1000,
   },
   institution: {
     label: 'Institution',
@@ -51,6 +59,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     maxSchemaDesigns: Infinity,
     cloudSnapshots: true,
     canvasSchemaEditor: true,
+    dailyServerRuns: 1000,
   },
 };
 

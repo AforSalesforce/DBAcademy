@@ -1,0 +1,12 @@
+# Keep CLI deploys to what the app needs. (.env.local and node_modules are
+# excluded by Vercel by default; listed here too so it never depends on that.)
+.env*
+!.env.example
+.claude/
+.sf/
+.next/
+node_modules/
+supabase/.temp/
+tests/
+*.tsbuildinfo
+*.pem

@@ -20,6 +20,7 @@ import { PYTHON_CURRICULUM,   getPythonLessonById }   from '@/features/code-play
 import { COMPILED_CURRICULUM, getCompiledLessonById } from '@/features/code-playground/curriculum/compiled-curriculum';
 import { useProgressStore } from '@/stores/progress-store';
 import { useCodeHistoryStore } from '@/stores/code-history-store';
+import { useFeatures } from '@/components/FeaturesProvider';
 import type { ModuleType } from '@/features/learn/curriculum/curriculum';
 
 // ── Language configuration ────────────────────────────────────────────────────
@@ -125,6 +126,10 @@ function createEngine(lang: LangId): CodeEngine {
 export default function CodePage() {
   const [language, setLanguage] = useState<LangId>('javascript');
   const activeLang = LANGUAGES.find(l => l.id === language)!;
+  // Server-run languages need an account (it caps their cost), so they're
+  // only offered when accounts are switched on.
+  const { accounts } = useFeatures();
+  const availableLanguages = accounts ? LANGUAGES : LANGUAGES.filter(l => l.clientSide);
 
   const [code, setCode]     = useState(DEFAULT_CODE.javascript);
   const [output, setOutput] = useState<CodeResult | null>(null);
@@ -176,10 +181,12 @@ export default function CodePage() {
       id: m.id,
       title: m.title,
       engine: m.engine,
+      builtIn: true,
       lessons: m.lessons.map(l => ({
         id: l.id,
         title: l.title,
         completed: Boolean(progress.lessonProgress[l.id]?.completed),
+        builtIn: true,
       })),
     })));
     setActiveLesson(null);
@@ -256,8 +263,10 @@ export default function CodePage() {
 
   // ── Run code ──────────────────────────────────────────────────────────────
 
-  const runCode = async () => {
+  /** `source` is the editor's live text when run by shortcut; buttons pass an event, so fall back to state. */
+  const runCode = async (source?: unknown) => {
     if (running) return;
+    const program = typeof source === 'string' ? source : code;
     setRunning(true);
     setOutput(null);
     try {
@@ -269,12 +278,12 @@ export default function CodePage() {
       await engine.init();
       initializedLangs.current.add(language);
 
-      const result = await engine.execute(code);
+      const result = await engine.execute(program);
       setOutput(result);
-      incrementQueries();
+      incrementQueries(program);
       await codeHistoryStore.addRun({
         language,
-        code,
+        code: program,
         stdout: result.stdout,
         stderr: result.stderr,
         exitCode: result.exitCode,
@@ -356,7 +365,7 @@ export default function CodePage() {
             style={{ background: '#111724', border: '1px solid rgba(255,255,255,0.06)' }}>
             <Link href="/learn"
               className="px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer"
-              style={{ color: '#5C6B8A' }}>
+              style={{ color: '#8A97B3' }}>
               Database
             </Link>
             <span className="px-2.5 py-1 rounded-md text-xs font-semibold"
@@ -370,7 +379,7 @@ export default function CodePage() {
           {/* Language selector */}
           <div className="hidden md:flex items-center gap-0.5 p-0.5 rounded-lg"
             style={{ background: '#111724', border: '1px solid rgba(255,255,255,0.06)' }}>
-            {LANGUAGES.map(lang => (
+            {availableLanguages.map(lang => (
               <button
                 key={lang.id}
                 onClick={() => setLanguage(lang.id)}
@@ -378,7 +387,7 @@ export default function CodePage() {
                 className="px-2.5 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer"
                 style={language === lang.id
                   ? { background: lang.color + '18', color: lang.color, border: `1px solid ${lang.color}30` }
-                  : { color: '#5C6B8A' }
+                  : { color: '#8A97B3' }
                 }>
                 {lang.abbr}
               </button>
@@ -390,7 +399,7 @@ export default function CodePage() {
         <div className="flex items-center gap-2">
           {isServerLang && (
             <span className="hidden sm:block text-[10px] px-2 py-1 rounded"
-              style={{ background: 'rgba(255,255,255,0.04)', color: '#5C6B8A', border: '1px solid rgba(255,255,255,0.06)' }}>
+              style={{ background: 'rgba(255,255,255,0.04)', color: '#8A97B3', border: '1px solid rgba(255,255,255,0.06)' }}>
               Runs on server
             </span>
           )}
@@ -409,7 +418,7 @@ export default function CodePage() {
 
           <Link href="/dashboard"
             className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors cursor-pointer"
-            style={{ background: '#111724', border: '1px solid rgba(255,255,255,0.08)', color: '#5C6B8A' }}>
+            style={{ background: '#111724', border: '1px solid rgba(255,255,255,0.08)', color: '#8A97B3' }}>
             <BarChart3 className="w-3.5 h-3.5" /> Dashboard
           </Link>
         </div>
@@ -429,7 +438,7 @@ export default function CodePage() {
             <button
               onClick={() => setSidebarCollapsed(c => !c)}
               className="p-2 rounded-md transition-colors cursor-pointer mb-1"
-              style={{ color: '#5C6B8A' }}
+              style={{ color: '#8A97B3' }}
               title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
               {sidebarCollapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
             </button>
@@ -502,6 +511,7 @@ export default function CodePage() {
           style={{ borderLeft: '1px solid rgba(255,255,255,0.06)' }}>
           {activeLesson ? (
             <LessonView
+              key={activeLesson.id}
               id={activeLesson.id}
               title={activeLesson.title}
               content={activeLesson.content}
@@ -529,12 +539,12 @@ export default function CodePage() {
                 <p className="font-semibold mb-1" style={{ color: '#EDF1FA' }}>
                   {activeLang.label} Playground
                 </p>
-                <p className="text-sm" style={{ color: '#5C6B8A' }}>
+                <p className="text-sm" style={{ color: '#8A97B3' }}>
                   {activeLang.clientSide
                     ? 'Runs entirely in your browser — no server needed.'
-                    : 'Runs on the server via a sandboxed executor (Piston).'}
+                    : 'Runs on the server in a sandboxed executor.'}
                 </p>
-                <p className="text-sm mt-2" style={{ color: '#5C6B8A' }}>
+                <p className="text-sm mt-2" style={{ color: '#8A97B3' }}>
                   Select a lesson from the curriculum or write your own code.
                 </p>
               </div>

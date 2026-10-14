@@ -18,7 +18,7 @@ export function RunHistory({ activeProjectId, onLoad, onRun, onSave }: Props) {
 
   if (visible.length === 0) {
     return (
-      <div className="p-4 text-center text-sm text-slate-400 dark:text-slate-500">
+      <div className="p-4 text-center text-sm text-faint">
         No history yet. Run a query to get started.
       </div>
     );
@@ -26,16 +26,16 @@ export function RunHistory({ activeProjectId, onLoad, onRun, onSave }: Props) {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-end px-3 py-1.5 border-b border-slate-200 dark:border-slate-700">
+      <div className="flex items-center justify-end px-3 py-1.5 border-b border-white/10">
         <button
           onClick={clearHistory}
-          className="flex items-center gap-1 text-xs text-slate-400 hover:text-red-500 transition-colors"
+          className="flex items-center gap-1 text-xs text-muted hover:text-danger transition-colors"
         >
           <Trash2 className="w-3 h-3" /> Clear
         </button>
       </div>
 
-      <ul className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+      <ul className="flex-1 overflow-y-auto divide-y divide-line">
         {visible.map(run => (
           <RunRow
             key={run.id}
@@ -66,33 +66,33 @@ function RunRow({
 
   return (
     <li
-      className="group flex flex-col px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer gap-0.5"
+      className="group flex flex-col px-3 py-2 hover:bg-card/50 cursor-pointer gap-0.5"
       onClick={() => onLoad(run.body)}
     >
       <div className="flex items-center gap-2">
         {run.status === 'ok' ? (
-          <CheckCircle className="w-3 h-3 text-green-500 shrink-0" />
+          <CheckCircle className="w-3 h-3 text-success shrink-0" />
         ) : (
-          <XCircle className="w-3 h-3 text-red-500 shrink-0" />
+          <XCircle className="w-3 h-3 text-danger shrink-0" />
         )}
-        <span className="text-xs text-slate-500 dark:text-slate-400 truncate flex-1">
+        <span className="text-xs text-muted truncate flex-1">
           {preview}
         </span>
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" onClick={e => e.stopPropagation()}>
-          <IconBtn title="Re-run" onClick={() => onRun(run.body)}><Play className="w-3 h-3 text-blue-500" /></IconBtn>
-          <IconBtn title="Save as query" onClick={() => onSave(run.body, run.engine)}><Bookmark className="w-3 h-3 text-slate-400" /></IconBtn>
+          <IconBtn title="Re-run" onClick={() => onRun(run.body)}><Play className="w-3 h-3 text-accent" /></IconBtn>
+          <IconBtn title="Save as query" onClick={() => onSave(run.body, run.engine)}><Bookmark className="w-3 h-3 text-muted" /></IconBtn>
         </div>
       </div>
       <div className="flex items-center gap-3 pl-5">
-        <span className="text-[10px] text-slate-400">{relativeTime}</span>
+        <span className="text-[10px] text-muted">{relativeTime}</span>
         {run.status === 'ok' && (
           <>
-            <span className="text-[10px] text-slate-400">{run.rowCount} rows</span>
-            <span className="text-[10px] text-slate-400">{run.durationMs} ms</span>
+            <span className="text-[10px] text-muted">{run.rowCount} rows</span>
+            <span className="text-[10px] text-muted">{run.durationMs} ms</span>
           </>
         )}
         {run.status === 'error' && run.errorMessage && (
-          <span className="text-[10px] text-red-400 truncate max-w-[160px]">{run.errorMessage}</span>
+          <span className="text-[10px] text-danger truncate max-w-[160px]">{run.errorMessage}</span>
         )}
       </div>
     </li>
@@ -104,7 +104,7 @@ function IconBtn({ title, onClick, children }: { title: string; onClick: () => v
     <button
       title={title}
       onClick={onClick}
-      className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+      className="p-1 rounded hover:bg-card-hover transition-colors"
     >
       {children}
     </button>

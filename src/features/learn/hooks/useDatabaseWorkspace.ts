@@ -20,6 +20,18 @@ db.users.find({ role: "admin" })`;
 
 const MUTATING_SQL = /\b(CREATE|DROP|ALTER|INSERT|UPDATE|DELETE|TRUNCATE)\b/i;
 const SNAPSHOT_DEBOUNCE_MS = 2000;
+const EDITOR_SAVE_DEBOUNCE_MS = 400;
+
+/** The editor's text is kept per project, so a reload doesn't lose it. */
+const editorKey = (projectId: string) => `dbacademy:editor:${projectId}`;
+
+function loadEditor(projectId: string): string | null {
+  try { return localStorage.getItem(editorKey(projectId)); } catch { return null; }
+}
+
+function saveEditor(projectId: string, text: string) {
+  try { localStorage.setItem(editorKey(projectId), text); } catch { /* storage full or blocked */ }
+}
 
 function generateFakeValue(name: string, type: string, dbType: EngineType) {
   const n = name.toLowerCase();
@@ -56,10 +68,17 @@ export function useDatabaseWorkspace(dbType: EngineType, activeProjectId: string
   const [isSeeding, setIsSeeding] = useState(false);
   const [viewingTableName, setViewingTableName] = useState<string | null>(null);
   const [lastRunDuration, setLastRunDuration] = useState<number | null>(null);
+  /** False until something has run, so the results panel can tell "nothing yet" from "0 rows". */
+  const [hasRun, setHasRun] = useState(false);
+  const [resultMessage, setResultMessage] = useState<string | null>(null);
+  /** The text that produced the current results (so the panel can word an empty result). */
+  const [lastRunQuery, setLastRunQuery] = useState<string | null>(null);
 
   const { incrementQueries } = useProgressStore();
   const runHistoryStore = useRunHistoryStore();
   const snapshotTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Project whose saved editor text is currently loaded; null while switching. */
+  const editorProjectRef = useRef<string | null>(null);
 
   // ── Init DB when dbType or project changes ──────────────────────────────
   useEffect(() => {
@@ -67,9 +86,12 @@ export function useDatabaseWorkspace(dbType: EngineType, activeProjectId: string
 
     const initDb = async () => {
       setLoading(true);
+      editorProjectRef.current = null;
       setError(null);
       setResults([]);
       setResultColumns([]);
+      setResultMessage(null);
+      setHasRun(false);
       setSchema([]);
       setViewingTableName(null);
 
@@ -105,12 +127,16 @@ export function useDatabaseWorkspace(dbType: EngineType, activeProjectId: string
         const schemaData = await engine.getSchema();
         setSchema(schemaData);
 
-        setQuery(prev => {
-          if (!prev || prev === (dbType !== 'nosql' ? DEFAULT_QUERY_NOSQL : DEFAULT_QUERY_SQL)) {
-            return dbType === 'nosql' ? DEFAULT_QUERY_NOSQL : DEFAULT_QUERY_SQL;
-          }
-          return prev;
-        });
+        // This project's own saved text, else its engine's starter query —
+        // never the previous engine's text (SQL in a NoSQL editor).
+        setQuery(loadEditor(activeProjectId) ?? (dbType === 'nosql' ? DEFAULT_QUERY_NOSQL : DEFAULT_QUERY_SQL));
+        editorProjectRef.current = activeProjectId;
+
+        // Restoring may have filled in newer sample data; save it so the
+        // upgrade happens once rather than on every visit.
+        if (dbType !== 'postgres') {
+          engine.serialize().then(data => saveSnapshot(activeProjectId, data)).catch(() => {});
+        }
       } catch (err: any) {
         if (!cancelled) setError(`Failed to load ${dbType} engine: ${err.message}`);
       } finally {
@@ -121,6 +147,33 @@ export function useDatabaseWorkspace(dbType: EngineType, activeProjectId: string
     initDb();
     return () => { cancelled = true; };
   }, [dbType, activeProjectId]);
+
+  useEffect(() => {
+    if (loading || editorProjectRef.current !== activeProjectId) return;
+    const timer = setTimeout(() => saveEditor(activeProjectId, query), EDITOR_SAVE_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [query, activeProjectId, loading]);
+
+  /**
+   * Put text in the editor of a project that's about to open (e.g. a lesson
+   * that switches engine), so its saved text doesn't replace the lesson's.
+   */
+  const setQueryForProject = useCallback((projectId: string, text: string) => {
+    saveEditor(projectId, text);
+    setQuery(text);
+  }, []);
+
+  /** Empty the results panel (e.g. when moving to another lesson). */
+  const clearResults = useCallback(() => {
+    setResults([]);
+    setResultColumns([]);
+    setResultMessage(null);
+    setLastRunQuery(null);
+    setHasRun(false);
+    setError(null);
+    setViewingTableName(null);
+    setLastRunDuration(null);
+  }, []);
 
   const refreshSchema = useCallback(async () => {
     if (!db) return;
@@ -150,10 +203,13 @@ export function useDatabaseWorkspace(dbType: EngineType, activeProjectId: string
     try {
       const res = await db.execute(q);
       const duration = Math.round(performance.now() - start);
+      setLastRunQuery(q);
       setResults(res.rows);
       setResultColumns(res.columns);
+      setResultMessage(res.message ?? null);
+      setHasRun(true);
       setLastRunDuration(duration);
-      incrementQueries();
+      incrementQueries(q);
 
       await runHistoryStore.addRun({
         projectId: activeProjectId,
@@ -173,6 +229,8 @@ export function useDatabaseWorkspace(dbType: EngineType, activeProjectId: string
       setError(err.message);
       setResults([]);
       setResultColumns([]);
+      setResultMessage(null);
+      setHasRun(true);
       setLastRunDuration(null);
 
       await runHistoryStore.addRun({
@@ -192,8 +250,11 @@ export function useDatabaseWorkspace(dbType: EngineType, activeProjectId: string
     setError(null);
     try {
       const res = await db.execute(sql);
+      setLastRunQuery(sql);
       setResults(res.rows);
       setResultColumns(res.columns);
+      setResultMessage(res.message ?? null);
+      setHasRun(true);
     } catch (err: any) {
       setError(err.message);
       setResults([]);
@@ -279,9 +340,14 @@ export function useDatabaseWorkspace(dbType: EngineType, activeProjectId: string
     if (!db) return;
     setLoading(true);
     try {
-      await db.init();
+      await db.reset();
+      if (db.type !== 'postgres') {
+        // Overwrite the saved snapshot too, or the old data returns on reload.
+        if (snapshotTimer.current) clearTimeout(snapshotTimer.current);
+        await saveSnapshot(activeProjectId, await db.serialize());
+      }
       setSchema(await db.getSchema());
-      setResults([{ message: 'Database reset to initial state.' }]);
+      setResults([{ message: 'Database reset to its original sample data.' }]);
       setResultColumns([]);
       setQuery(dbType === 'nosql' ? DEFAULT_QUERY_NOSQL : DEFAULT_QUERY_SQL);
       setViewingTableName(null);
@@ -290,10 +356,10 @@ export function useDatabaseWorkspace(dbType: EngineType, activeProjectId: string
     } finally {
       setLoading(false);
     }
-  }, [db, dbType]);
+  }, [db, dbType, activeProjectId]);
 
   return {
-    db, query, setQuery, results, resultColumns, schema, error, setError,
+    db, query, setQuery, setQueryForProject, results, resultColumns, resultMessage, lastRunQuery, hasRun, clearResults, schema, error, setError,
     loading, isSeeding, viewingTableName, lastRunDuration,
     refreshSchema, runQuery, executeDirect, handleViewTable,
     handleSeedData, handleResetDb,

@@ -7,12 +7,12 @@ Master PostgreSQL, SQLite, and NoSQL with guided lessons, quizzes, and a profess
 ## Features
 
 - **Multi-Engine Support** — PostgreSQL (PGlite), SQLite (WASM), and NoSQL, all running client-side
-- **30+ Interactive Lessons** — Structured curriculum from basics to advanced topics
+- **22 Interactive Lessons** — A SQL murder mystery, then joins, schema design, PostgreSQL window functions and CTEs, and document databases
 - **Quiz & Assessment System** — Test knowledge with immediate feedback and explanations
 - **Gamified Progress** — XP, levels, streaks, achievements, and completion tracking
 - **Professional SQL Editor** — Monaco editor with syntax highlighting and keyboard shortcuts
 - **Schema Visualization** — ER diagrams and table inspection tools
-- **Institution Admin Panel** — Student tracking, custom curricula, bulk enrollment
+- **Institution Admin Panel** — Teacher dashboard with per-student progress; students join with an invite code
 - **Pricing Tiers** — Free, Pro ($12/mo), and Institution ($8/student/mo)
 - **Auth System** — Sign up/sign in with credential-based authentication
 - **Production Security** — Security headers, input validation, OWASP compliance
@@ -31,20 +31,25 @@ Master PostgreSQL, SQLite, and NoSQL with guided lessons, quizzes, and a profess
 ## Getting Started
 
 ```bash
-# Install dependencies (Supabase + Stripe packages are new — not yet in package.json)
 npm install
-npm install @supabase/supabase-js @supabase/ssr stripe
 
 # Copy environment variables
 cp .env.example .env.local
 
-# Run development server
+# Run development server (always uses --webpack — Turbopack conflicts with
+# the Monaco/Pyodide worker setup)
 npm run dev
+
+# Run tests
+npm test
 
 # Build for production
 npm run build
 npm start
 ```
+
+See [docs/HANDOFF.md](docs/HANDOFF.md) for a full developer onboarding guide
+(architecture, configuration, known tech debt).
 
 Open [http://localhost:3000](http://localhost:3000).
 
@@ -52,7 +57,7 @@ Open [http://localhost:3000](http://localhost:3000).
 
 1. Create a project at [supabase.com/dashboard](https://supabase.com/dashboard).
 2. In the SQL Editor, run the migrations in order: `supabase/migrations/001_init.sql`, `002_billing.sql`, `003_institutions.sql`.
-3. Fill `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` in `.env.local` (Settings > API).
+3. Fill `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` in `.env.local` (Settings > API).
 4. For local dev, consider disabling "Confirm email" (Authentication > Providers > Email) so signups get a session immediately.
 
 The app still runs without Supabase configured — auth and sync are disabled and progress stays in localStorage.
@@ -80,64 +85,50 @@ The SQLite engine currently loads `sql-wasm.wasm` from cdnjs. To self-host:
 cp node_modules/sql.js/dist/sql-wasm.wasm public/
 ```
 
-then change the `locateFile` URL in `src/lib/db/sqlite.ts` back to `/${file}`.
+then change the `locateFile` URL in `src/db-engines/sqlite.ts` back to `/${file}`.
 
 ## SaaS Architecture
 
 - **Auth**: Supabase email/password. `src/middleware.ts` refreshes sessions and protects `/dashboard` and `/admin`.
 - **Profiles**: a `public.profiles` row (name, role, plan) is auto-created on signup by the `handle_new_user` trigger.
 - **Progress sync**: `src/components/ProgressSync.tsx` hydrates the zustand store from `public.user_progress` on load and writes back debounced changes.
-- **Plans / billing**: stubbed in `src/lib/plans.ts`; feature gating reads `profiles.plan` (`free`/`pro`/`institution`). A future Stripe webhook only needs to update that column. Free plan limits custom modules to 1.
-
-### Cleanup TODO
-
-The old NextAuth implementation is now unused and can be removed:
-
-```bash
-rm -rf src/app/api/auth src/lib/auth.ts
-npm uninstall next-auth @auth/core bcryptjs @types/bcryptjs
-```
+- **Plans / billing**: `src/features/billing/plans.ts`; feature gating reads `profiles.plan` (`free`/`pro`/`institution`). The Stripe webhook (`src/app/api/billing/webhook/route.ts`) is the only writer of that column. Free plan limits custom modules to 1.
 
 ## Project Structure
 
-```
+See [docs/HANDOFF.md](docs/HANDOFF.md) for the full, current breakdown of
+`src/` (feature folders, stores, db engines, etc.) and how the pieces fit
+together. Short version:
+
+```text
 src/
-├── app/
-│   ├── page.tsx              # Landing page (marketing)
-│   ├── learn/page.tsx        # SQL playground & lessons
-│   ├── dashboard/page.tsx    # User progress dashboard
-│   ├── pricing/page.tsx      # Pricing plans
-│   ├── admin/page.tsx        # Institution admin panel
-│   ├── auth/                 # Sign in / Sign up
-│   └── api/auth/             # NextAuth API routes
-├── components/
-│   ├── Quiz.tsx              # Quiz/assessment engine
-│   ├── SqlEditor.tsx         # Monaco code editor
-│   ├── LessonView.tsx        # Lesson renderer with quizzes
-│   ├── Sidebar.tsx           # Curriculum navigation
-│   ├── ResultsTable.tsx      # Query results display
-│   ├── SchemaViewer.tsx      # Database schema inspector
-│   ├── ERDiagram.tsx         # Entity-relationship diagrams
-│   └── ErrorBoundary.tsx     # Production error handling
-└── lib/
-    ├── curriculum.ts         # All lesson/quiz content
-    ├── progress-store.ts     # Zustand progress & achievements
-    ├── auth.ts               # NextAuth configuration
-    └── db/                   # Database engine implementations
+├── app/             Next.js routes — thin, composition only
+├── features/        learn/, code-playground/, billing/ — UI + domain logic per feature
+├── db-engines/       SQLite/Postgres/NoSQL execution engines (no React)
+├── stores/           Zustand stores, one per domain entity
+├── lib/               supabase clients, IndexedDB persistence, shared hooks
+└── components/        only truly cross-feature components
 ```
 
 ## Deployment
 
-Deploy to Vercel, Netlify, or any Node.js hosting:
+Deployed via Vercel (project `dba-cademy`, linked through `.vercel/project.json`).
+Pushing to `main` triggers a deploy; to deploy manually:
+
+```bash
+vercel --prod
+```
+
+It also runs on any Node.js hosting:
 
 ```bash
 npm run build
 npm start
 ```
 
-Set the following environment variables in production:
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+Set the environment variables from `.env.example` in your hosting provider's
+dashboard — see [docs/HANDOFF.md](docs/HANDOFF.md#4-configuration) for what
+each one does and which are optional.
 
 ## License
 

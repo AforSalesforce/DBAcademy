@@ -104,19 +104,19 @@ export function NotesDrawer({ lessonId, projectId }: Props) {
       />
 
       {/* Drawer */}
-      <div className="relative w-full max-w-md bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-700 flex flex-col shadow-xl pointer-events-auto">
+      <div className="relative w-full max-w-md bg-surface border-l border-white/10 flex flex-col shadow-xl pointer-events-auto">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-700">
-          <span className="font-semibold text-sm text-slate-700 dark:text-slate-200">Notes</span>
+        <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+          <span className="font-semibold text-sm text-ink">Notes</span>
           <div className="flex items-center gap-2">
             <button
               onClick={handleNewNote}
               title="New note"
-              className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+              className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-accent hover:bg-accent/10 rounded transition-colors"
             >
               <Plus className="w-3.5 h-3.5" /> New
             </button>
-            <button onClick={closeDrawer} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+            <button onClick={closeDrawer} className="text-muted hover:text-ink">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -124,23 +124,23 @@ export function NotesDrawer({ lessonId, projectId }: Props) {
 
         <div className="flex flex-1 overflow-hidden">
           {/* Note list */}
-          <div className="w-40 flex-shrink-0 border-r border-slate-200 dark:border-slate-700 overflow-y-auto">
+          <div className="w-40 flex-shrink-0 border-r border-white/10 overflow-y-auto">
             {sorted.length === 0 ? (
-              <p className="p-3 text-xs text-slate-400 text-center">No notes</p>
+              <p className="p-3 text-xs text-muted text-center">No notes</p>
             ) : (
               <ul>
                 {sorted.map(n => (
                   <li key={n.id}>
                     <button
-                      className={`group w-full text-left px-3 py-2 text-xs hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${
+                      className={`group w-full text-left px-3 py-2 text-xs hover:bg-card transition-colors ${
                         n.id === activeNoteId
-                          ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-medium'
-                          : 'text-slate-600 dark:text-slate-400'
+                          ? 'bg-accent/10 text-accent font-medium'
+                          : 'text-muted'
                       }`}
                       onClick={() => selectNote(n)}
                     >
                       <div className="flex items-center gap-1">
-                        {n.pinned && <Pin className="w-2.5 h-2.5 text-blue-400 shrink-0" />}
+                        {n.pinned && <Pin className="w-2.5 h-2.5 text-accent shrink-0" />}
                         <span className="truncate">{n.title || 'Untitled'}</span>
                       </div>
                     </button>
@@ -154,25 +154,25 @@ export function NotesDrawer({ lessonId, projectId }: Props) {
           {activeNote ? (
             <div className="flex-1 flex flex-col overflow-hidden">
               {/* Note toolbar */}
-              <div className="flex items-center gap-1 px-3 py-1.5 border-b border-slate-200 dark:border-slate-700">
+              <div className="flex items-center gap-1 px-3 py-1.5 border-b border-white/10">
                 <input
                   value={draftTitle}
                   onChange={e => handleTitleChange(e.target.value)}
                   placeholder="Note title…"
-                  className="flex-1 text-sm font-medium bg-transparent border-none focus:outline-none text-slate-800 dark:text-slate-100 placeholder-slate-400"
+                  className="flex-1 text-sm font-medium bg-transparent border-none focus:outline-none text-ink placeholder-muted"
                 />
                 <button
                   onClick={() => setPreview(p => !p)}
                   title={preview ? 'Edit' : 'Preview'}
-                  className="p-1 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  className="p-1 rounded text-muted hover:text-ink hover:bg-card"
                 >
                   {preview ? <Pencil className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                 </button>
                 <button
                   onClick={() => togglePin(activeNote.id)}
                   title={activeNote.pinned ? 'Unpin' : 'Pin'}
-                  className={`p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 ${
-                    activeNote.pinned ? 'text-blue-500' : 'text-slate-400 hover:text-slate-600'
+                  className={`p-1 rounded hover:bg-card ${
+                    activeNote.pinned ? 'text-accent' : 'text-muted hover:text-ink'
                   }`}
                 >
                   <Pin className="w-3.5 h-3.5" />
@@ -180,7 +180,7 @@ export function NotesDrawer({ lessonId, projectId }: Props) {
                 <button
                   onClick={() => handleDelete(activeNote.id)}
                   title="Delete"
-                  className="p-1 rounded text-slate-400 hover:text-red-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  className="p-1 rounded text-muted hover:text-danger hover:bg-card"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -192,7 +192,7 @@ export function NotesDrawer({ lessonId, projectId }: Props) {
                   {draft.trim() ? (
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{draft}</ReactMarkdown>
                   ) : (
-                    <p className="text-slate-400 italic">Nothing to preview.</p>
+                    <p className="text-muted italic">Nothing to preview.</p>
                   )}
                 </div>
               ) : (
@@ -200,12 +200,12 @@ export function NotesDrawer({ lessonId, projectId }: Props) {
                   value={draft}
                   onChange={e => handleDraftChange(e.target.value)}
                   placeholder="Write in Markdown…"
-                  className="flex-1 resize-none p-4 text-sm bg-transparent text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none font-mono"
+                  className="flex-1 resize-none p-4 text-sm bg-transparent text-ink placeholder-muted focus:outline-none font-mono"
                 />
               )}
             </div>
           ) : (
-            <div className="flex-1 flex items-center justify-center text-sm text-slate-400">
+            <div className="flex-1 flex items-center justify-center text-sm text-muted">
               {sorted.length > 0 ? 'Select a note' : 'Click "New" to create a note'}
             </div>
           )}

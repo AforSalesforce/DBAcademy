@@ -15,7 +15,7 @@ export function CodeOutput({ result, running }: CodeOutputProps) {
       <div className="flex items-center gap-3 h-full px-4" style={{ background: '#07090F' }}>
         <div className="w-4 h-4 rounded-full border-2 animate-spin shrink-0"
           style={{ borderColor: 'rgba(245,158,11,0.25)', borderTopColor: '#F59E0B' }} />
-        <span className="text-sm font-mono" style={{ color: '#5C6B8A' }}>Running…</span>
+        <span className="text-sm font-mono" style={{ color: '#8A97B3' }}>Running…</span>
       </div>
     );
   }
@@ -23,8 +23,8 @@ export function CodeOutput({ result, running }: CodeOutputProps) {
   if (!result) {
     return (
       <div className="flex items-center gap-2 h-full px-4" style={{ background: '#07090F' }}>
-        <Terminal className="w-4 h-4 shrink-0" style={{ color: '#2E3A52' }} />
-        <span className="text-sm font-mono" style={{ color: '#2E3A52' }}>Press Run (⌘↵) to execute</span>
+        <Terminal className="w-4 h-4 shrink-0" style={{ color: '#7A87A5' }} />
+        <span className="text-sm font-mono" style={{ color: '#7A87A5' }}>Press Run (⌘↵) to execute</span>
       </div>
     );
   }
@@ -48,8 +48,8 @@ export function CodeOutput({ result, running }: CodeOutputProps) {
         {result.durationMs !== undefined && (
           <>
             <span style={{ color: 'rgba(255,255,255,0.12)' }}>·</span>
-            <Clock className="w-3 h-3 shrink-0" style={{ color: '#5C6B8A' }} />
-            <span className="text-xs font-mono" style={{ color: '#5C6B8A' }}>
+            <Clock className="w-3 h-3 shrink-0" style={{ color: '#8A97B3' }} />
+            <span className="text-xs font-mono" style={{ color: '#8A97B3' }}>
               {result.durationMs}ms
             </span>
           </>
@@ -60,7 +60,7 @@ export function CodeOutput({ result, running }: CodeOutputProps) {
       <div className="flex-1 overflow-y-auto px-4 py-3 text-sm leading-relaxed"
         style={{ fontFamily: "'Fira Code','Droid Sans Mono',monospace" }}>
         {!hasStdout && !hasStderr && (
-          <span style={{ color: '#2E3A52' }}>No output.</span>
+          <span style={{ color: '#7A87A5' }}>No output.</span>
         )}
         {hasStdout && (
           <pre className="whitespace-pre-wrap break-all" style={{ color: '#EDF1FA' }}>
