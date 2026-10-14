@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ProsePage } from '@/components/ProsePage';
 import { TOTAL_PATH_LESSONS } from '@/features/learn/curriculum/path';
-import { CONTACT_URL, REPO_URL } from '@/lib/site';
+import { CONTACT_EMAIL, CONTACT_URL, OWNER_NAME, OWNER_PROFILES, REPO_URL } from '@/lib/site';
 
 export const metadata: Metadata = {
   title: 'About',
@@ -65,8 +65,23 @@ export default function AboutPage() {
 
       <h2>Who runs it</h2>
       <p>
-        DBAcademy is an independent project, and its source code is public on <a href={REPO_URL}>GitHub</a>. To report a
-        problem or suggest a lesson, <a href={CONTACT_URL}>open an issue</a>.
+        DBAcademy is an independent project built and run by <strong>{OWNER_NAME}</strong>. Its source code is public on{' '}
+        <a href={REPO_URL}>GitHub</a>.
+      </p>
+      <ul>
+        {OWNER_PROFILES.map(p => (
+          <li key={p.label}>
+            {p.label}: <a href={p.url} rel="me">{p.url.replace(/^https:\/\/(www\.)?/, '').replace(/\/$/, '')}</a>
+          </li>
+        ))}
+        <li>
+          Email: <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
+        </li>
+      </ul>
+      <p>
+        To report a problem or suggest a lesson, <a href={CONTACT_URL}>open an issue</a> or send an email. The{' '}
+        <Link href="/terms">terms of use</Link> and <Link href="/privacy">privacy page</Link> explain the rules and how your
+        data is handled.
       </p>
     </ProsePage>
   );

@@ -3,7 +3,7 @@ import { accountsEnabled } from '@/lib/features';
 import type { Metadata } from 'next';
 import { CURRICULUM } from '@/features/learn/curriculum/curriculum';
 import { JsonLd } from '@/components/PublicHeader';
-import { REPO_URL, SITE_DESCRIPTION, SITE_NAME, SITE_URL } from '@/lib/site';
+import { CONTACT_EMAIL, OWNER_NAME, OWNER_PROFILES, REPO_URL, SITE_DESCRIPTION, SITE_NAME, SITE_URL } from '@/lib/site';
 import {
   Database, GraduationCap, Zap, BookOpen, BarChart3, Code2,
   ShieldCheck, Globe, ArrowRight, Play, Terminal, Table, GitBranch,
@@ -18,7 +18,16 @@ export const metadata: Metadata = {
 /** Tells search engines who publishes the site. */
 const SITE_JSON_LD = [
   { '@context': 'https://schema.org', '@type': 'WebSite', name: SITE_NAME, url: SITE_URL, description: SITE_DESCRIPTION },
-  { '@context': 'https://schema.org', '@type': 'Organization', name: SITE_NAME, url: SITE_URL, logo: `${SITE_URL}/icon.svg` },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: SITE_NAME,
+    url: SITE_URL,
+    logo: `${SITE_URL}/icon.svg`,
+    email: CONTACT_EMAIL,
+    sameAs: [REPO_URL],
+    founder: { '@type': 'Person', name: OWNER_NAME, sameAs: OWNER_PROFILES.map(p => p.url) },
+  },
 ];
 
 /** Real counts, so the page never promises more than the product has. */

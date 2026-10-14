@@ -35,6 +35,7 @@ export function SiteFooter() {
             {accounts && <Link href="/auth/signin" className="hover:text-[#EDF1FA] transition-colors cursor-pointer">Sign In</Link>}
             <Link href="/about" className="hover:text-[#EDF1FA] transition-colors cursor-pointer">About</Link>
             <Link href="/privacy" className="hover:text-[#EDF1FA] transition-colors cursor-pointer">Privacy</Link>
+            <Link href="/terms" className="hover:text-[#EDF1FA] transition-colors cursor-pointer">Terms</Link>
             <a href={REPO_URL} className="hover:text-[#EDF1FA] transition-colors cursor-pointer">GitHub</a>
           </nav>
 

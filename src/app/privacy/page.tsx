@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { ProsePage } from '@/components/ProsePage';
 import { accountsEnabled } from '@/lib/features';
-import { CONTACT_URL } from '@/lib/site';
+import { CONTACT_EMAIL, CONTACT_URL } from '@/lib/site';
 
 export const metadata: Metadata = {
   title: 'Privacy',
@@ -70,7 +70,8 @@ export default function PrivacyPage() {
 
       <h2>Questions</h2>
       <p>
-        To ask about your data or report a problem, <a href={CONTACT_URL}>open an issue on GitHub</a>.
+        To ask about your data or report a problem, email <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> or{' '}
+        <a href={CONTACT_URL}>open an issue on GitHub</a>.
       </p>
     </ProsePage>
   );
