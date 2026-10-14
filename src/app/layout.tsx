@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, DM_Sans } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { Analytics } from "@vercel/analytics/next";
 
 const display = Bricolage_Grotesque({
   subsets: ["latin"],
@@ -70,6 +71,8 @@ export default function RootLayout({
             </ErrorBoundary>
           </FeaturesProvider>
         </ThemeProvider>
+        {/* Cookieless visitor counts (Vercel Web Analytics). Described on /privacy. */}
+        <Analytics />
       </body>
     </html>
   );

@@ -17,6 +17,7 @@
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.108.1",
     "@types/sql.js": "^1.4.9",
+    "@vercel/analytics": "^2.0.1",
     "clsx": "^2.1.1",
     "framer-motion": "^12.40.0",
     "lucide-react": "^0.562.0",

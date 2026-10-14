@@ -5,7 +5,7 @@ import { CONTACT_URL } from '@/lib/site';
 
 export const metadata: Metadata = {
   title: 'Privacy',
-  description: 'DBAcademy keeps your progress, notes and practice databases in your own browser. No account, no analytics, no ads.',
+  description: 'DBAcademy keeps your progress, notes and practice databases in your own browser. No account, no ads, and only anonymous visitor counts.',
   alternates: { canonical: '/privacy' },
 };
 
@@ -17,12 +17,12 @@ export default function PrivacyPage() {
   const accounts = accountsEnabled();
   return (
     <ProsePage eyebrow="Privacy" title="Your data stays in your browser">
-      <p><em>Last updated: 4 October 2026</em></p>
+      <p><em>Last updated: 14 October 2026</em></p>
 
       <h2>The short version</h2>
       <ul>
         <li>{accounts ? 'You can learn without an account.' : 'There are no accounts.'} We don&apos;t ask for your name or email to use the course.</li>
-        <li>No analytics, no tracking, no ads{accounts ? '' : ', and no cookies'}.</li>
+        <li>No ads, no tracking across sites{accounts ? '' : ', and no cookies'}. We count visits anonymously so we know how many people use the site.</li>
         <li>Your progress, notes, queries and practice databases are saved in your browser, on your device. We never receive them.</li>
       </ul>
 
@@ -41,6 +41,11 @@ export default function PrivacyPage() {
         <li>
           <strong>Hosting.</strong> The site is served by Vercel, which handles each request and keeps standard technical logs
           (such as IP address and browser type) to run and protect the service.
+        </li>
+        <li>
+          <strong>Visitor counts.</strong> We use Vercel Web Analytics to count page views and visitors. It sets no cookies,
+          doesn&apos;t follow you to other sites, and only shows us totals such as pages viewed, country, browser and referring
+          site. It can&apos;t tell us who you are.
         </li>
         <li>
           <strong>Code libraries.</strong> The code editor and the Python runtime load from jsDelivr, and SQLite loads from
